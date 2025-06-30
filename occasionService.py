@@ -15,7 +15,13 @@ class OccasionService:
             api_key (str): OpenAI API key
         """
 
-        self.client = OpenAI(api_key)
+        self.api_key = api_key or os.getenv('OPENAI_API_KEY')
+        
+        if not self.api_key:
+            raise ValueError("OPENAI_API_KEY not found. Please set environment variable or pass api_key parameter.")
+        
+       
+        self.client = OpenAI(api_key=self.api_key)
         
         self.core_parameters = [
             "occasion", "time", "location", "body_type", "budget", "gender"
