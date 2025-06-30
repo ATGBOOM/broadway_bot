@@ -50,72 +50,79 @@ class RecommendationService:
             all_products.extend(products)
         return all_products
 
-    def convert_to_searchable_tags(self, all_input_tags) -> Tuple[List[str], List[str], str]:
+    def convert_to_searchable_tags(self, user_query, conversation_history, all_input_tags) -> Tuple[List[str], List[str], str]:
         """Convert input tags to searchable product catalog tags."""
         if not all_input_tags:
             return [], [], "Clothing"
         
-        prompt = f"""You are a product catalog specialist. Convert these style tags into actual searchable product tags and determine the product category.
+        prompt = f"""
+You are a product tagging engine for an AI fashion assistant.
 
-**INPUT TAGS:**
-All tags : {all_input_tags}
+You will be given structured user parameters extracted from a conversation. Your job is to generate **searchable product tags** from these parameters to help match products from our fashion catalog.
+
+---
+
+**PARAMETERS:**
+{all_input_tags}
+
+---
 
 **YOUR TASK:**
-1. Convert all tags into realistic e-commerce product tags (lowercase, hyphens, practical)
-2. Determine the main product category: {self.categories}
-3. Separate into IMPORTANT (explicit requirements) and REGULAR (supporting/mood tags)
 
-**TAG CONVERSION EXAMPLES:**
-- wedding → wedding-guest, formal, ethnic-wear, festive
-- work → office-wear, professional, business-casual, work-appropriate
-- evening → evening-wear, party-wear, date-night
-- elegant → elegant, sophisticated, classy, graceful
-- neutral → black, white, grey, navy, beige, nude
-- cotton → cotton, breathable, comfortable, casual
-- formal → formal, dressy, sophisticated, elegant
-- casual → casual, everyday, relaxed, comfortable
+1. Convert the parameter values into realistic, normalized e-commerce tags:
+   - All lowercase
+   - Use hyphens for multi-word tags (e.g., "office wear" → "office-wear")
 
-**IMPORTANCE RULES:**
-IMPORTANT TAGS (Direct requirements):
-- Product types (shirt, dress, jeans, shoes, bags, etc.)
-- Specific occasions (wedding-guest, office-wear, party-wear)
-- Formality levels (formal, casual, business-casual)
-- Gender specifications (mens, womens, unisex)
+2. **Infer appropriate product types** based on occasion, gender, weather, formality, time of day, and age.
+   - Example: For a party at night for men, suggest items like "shirt", "trousers", "loafers"
+   - Example: For a beach vacation in hot weather, suggest items like "shorts", "t-shirts", "sandals"
 
-REGULAR TAGS (Supporting tags):
-- Colors and color moods (neutral, bright, jewel-tones)
-- Fabrics and comfort (cotton, breathable, comfortable)
-- Aesthetic vibes (elegant, classic, trendy, sophisticated)
-- Style descriptors (minimalist, bohemian, vintage)
+3. Classify tags into two groups:
+   - **IMPORTANT**:
+     - Product types (e.g., t-shirt, dress, jeans, loafers)
+     - Gender (e.g., mens, womens, unisex)
+     - Occasion or context-specific tags (e.g., gym-wear, office-wear, wedding-guest)
+     - Formality level (e.g., casual, formal, smart-casual)
 
-**OUTPUT FORMAT:**
-Return exactly in this format:
+   - **REGULAR**:
+     - Fabrics, styles, comfort (e.g., cotton, flowy, wrinkle-free)
+     - Colors and tones (e.g., beige, jewel-tones, neutral)
+     - Moods, aesthetics, trends (e.g., edgy, vintage, chic, y2k)
+     - Weather-related attributes (e.g., warm, breathable, rain-friendly)
+     - Body-fit attributes (e.g., petite, plus-size, tall)
+     - Budget implications (e.g., premium, budget-friendly)
 
-CATEGORY:
-- CategoryName
+4. Group the tags under logical high-level categories such as:
+   - Clothing
+   - Footwear
+   - Accessories
+   - Fabric
+   - Color
+   - Style
+   - Fit
+   - Occasion
 
-IMPORTANT:
-tag1, tag2, tag3
+---
 
-REGULAR:
-tag1, tag2, tag3, tag4
-
-**EXAMPLE:**
-Input Important: ["wedding", "formal"], Regular: ["elegant", "jewel_tones"]
-Output:
-CATEGORY:
-- Clothing
+**OUTPUT FORMAT (STRICT):**
 
 IMPORTANT:
-wedding-guest, formal, ethnic-wear
+- CategoryName: tag1, tag2
+- CategoryName: tag1
 
 REGULAR:
-elegant, sophisticated, jewel-tones, festive, dressy
+- CategoryName: tag1, tag2, tag3
+- CategoryName: tag1, tag2
 
-Convert the tags now:"""
+---
+
+Now, using the parameters, generate the most accurate and practical tags possible to guide product search. Remember to include inferred product types based on the full context.
+"""
+
 
         try:
             response = self._call_ai(prompt)
+            print(f"Tag conversion response: {response}")
             return self._parse_searchable_tags_response(response)
         except Exception as e:
             print(f"Error converting tags: {e}")
@@ -126,28 +133,56 @@ Convert the tags now:"""
         important_tags, regular_tags, category = [], [], "Clothing"
         current_section = None
         
+        print(f"Parsing AI response: {ai_response}")
+        
         for line in ai_response.strip().split('\n'):
             line = line.strip()
             if not line:
                 continue
                 
-            if line.startswith('CATEGORY:'):
-                current_section = 'category'
-            elif line.startswith('IMPORTANT:'):
+            if line.startswith('IMPORTANT:'):
                 current_section = 'important'
+                continue
             elif line.startswith('REGULAR:'):
                 current_section = 'regular'
-            elif line.startswith('- ') and current_section == 'category':
-                category = line[2:].strip()
-            elif current_section in ['important', 'regular'] and line:
-                tags = [tag.strip() for tag in line.split(',') if tag.strip()]
-                if current_section == 'important':
-                    important_tags.extend(tags)
+                continue
+            elif line.startswith('- ') and current_section in ['important', 'regular']:
+                # Parse line like "- CategoryName: tag1, tag2, tag3"
+                category_part = line[2:]  # Remove '- '
+                
+                if ':' in category_part:
+                    # Split by first colon to get category and tags
+                    category_name, tags_str = category_part.split(':', 1)
+                    category_name = category_name.strip()
+                    
+                    # Set the main category (use the first one we see)
+                    if category == "Clothing" and category_name in self.categories:
+                        category = category_name
+                    
+                    # Extract tags
+                    tags = [tag.strip() for tag in tags_str.split(',') if tag.strip()]
+                    
+                    if current_section == 'important':
+                        important_tags.extend(tags)
+                    elif current_section == 'regular':
+                        regular_tags.extend(tags)
                 else:
-                    regular_tags.extend(tags)
+                    # Handle lines that might just be tags without category
+                    tags = [tag.strip() for tag in category_part.split(',') if tag.strip()]
+                    if current_section == 'important':
+                        important_tags.extend(tags)
+                    elif current_section == 'regular':
+                        regular_tags.extend(tags)
         
-        return list(dict.fromkeys(important_tags))[:8], list(dict.fromkeys(regular_tags))[:12], category
+        # Remove duplicates while preserving order
+        important_tags = list(dict.fromkeys(important_tags))[:8]
+        regular_tags = list(dict.fromkeys(regular_tags))[:12]
+        
+        print(f"Parsed important tags: {important_tags}")
+        print(f"Parsed regular tags: {regular_tags}")
 
+        
+        return important_tags, regular_tags, None
     def _fallback_tags(self, input_tags) -> Tuple[List[str], List[str], str]:
         """Generate fallback tags if AI fails"""
         tag_mapping = {
@@ -168,33 +203,93 @@ Convert the tags now:"""
         return list(set(important_tags))[:8], [], "Clothing"
 
     def checkRecs(self, user_query, conversation_history, products) -> List[str]:
-        """Validate product recommendations using AI."""
-        if not products:
-            return []
-            
+  
+        # Format products for the prompt in a cleaner way
         formatted_products = []
-        for i, product in enumerate(products[:10], 1):
-            formatted_products.append(f"{i}. {product.get('product_id', 'N/A')}: {product.get('title', 'N/A')}")
+        for i, product in enumerate(products, 1):  # Limit to top 10 for better processing
+            product_info = f"""
+    {i}. PRODUCT_ID: {product.get('product_id', 'N/A')}
+    TITLE: {product.get('title', 'N/A')}
+    BRAND: {product.get('brand_name', 'N/A')}
+    PRICE: ₹{product.get('price', 'N/A')}
+    MATCHED_IMPORTANT_TAGS: {', '.join(product.get('matched_important_tags', []))}
+    MATCHED_REGULAR_TAGS: {', '.join(product.get('matched_regular_tags', []))}
+    TOTAL_SCORE: {product.get('total_score', 0)}"""
+            formatted_products.append(product_info)
         
-        prompt = f"""Validate these product recommendations for the user query.
+        products_text = '\n'.join(formatted_products)
+        
+        prompt = f"""
+You are a fashion recommendation validator. Your job is to analyze if the recommended products truly match what the user is asking for.
 
-USER QUERY: {user_query}
-PRODUCTS: {chr(10).join(formatted_products)}
+**USER QUERY:** {user_query}
+**CONVERSATION HISTORY:** {conversation_history}
 
-Return ONLY valid product IDs in format: PROD001, PROD002
-If no matches: NO_MATCHES"""
+**RECOMMENDED PRODUCTS:**
+{products_text}
+
+**YOUR TASK:**
+1. **Analyze the user's request** - What specific product type, style, occasion, or characteristics are they looking for?
+2. **Evaluate each product** - Does it match the user's core requirements?
+3. **Select the best matches** - Return ONLY products that genuinely fit the user's request
+4. **Prioritize relevance** - A pematch is better than a high-scoring irrelevant item
+
+**EVALUATION CRITERIA:**
+- **Product Type Match**: If user asks for "shirts", only recommend actual shirts/tops, not dresses or pants
+- **Gender Match**: If user specifies "women's" or "men's", ensure gender appropriateness
+- **Occasion Match**: If user mentions specific occasion (work, party, casual), prioritize those
+- **Style Consistency**: Ensure the style aligns with user's aesthetic preferences
+
+**CRITICAL RULES:**
+- Return MAXIMUM 5 product IDs
+- If NO products match well, return: "NO_MATCHES"
+- If products match but not perfectly, still include them if they're reasonable alternatives
+
+**OUTPUT FORMAT (VERY IMPORTANT):**
+Return ONLY the product IDs in this exact format:
+PROD001, PROD005, PROD012
+
+If no good matches:
+NO_MATCHES
+
+**RESPONSE:**"""
 
         try:
             response = self._call_ai(prompt)
-            if "NO_MATCHES" in response.upper():
+
+            
+            # Clean and parse the response
+            response = response.strip()
+            
+            # Handle no matches case
+            if "NO_MATCHES" in response.upper() or "NO MATCHES" in response.upper():
+                print("AI determined no good matches")
                 return []
             
+            # Extract product IDs using regex for more robust parsing
             import re
             product_ids = re.findall(r'PROD\d+', response.upper())
-            return list(dict.fromkeys(product_ids))[:5]
+            
+            # Remove duplicates while preserving order
+            seen = set()
+            unique_product_ids = []
+            for prod_id in product_ids:
+                if prod_id not in seen:
+                    seen.add(prod_id)
+                    unique_product_ids.append(prod_id)
+            
+            # Limit to maximum 5 as specified
+            final_product_ids = unique_product_ids[:5]
+            
+            print(f"Validated Product IDs: {final_product_ids}")
+            return final_product_ids
+            
         except Exception as e:
-            print(f"Error in validation: {e}")
-            return [p.get('product_id') for p in products[:3] if p.get('product_id')]
+            print(f"Error in checkRecs: {e}")
+            # Fallback: return top 3 products if AI validation fails
+            fallback_ids = [p.get('product_id') for p in products[:3] if p.get('product_id')]
+            print(f"Fallback to top products: {fallback_ids}")
+            return fallback_ids
 
     def _call_ai(self, prompt):
         """Send prompt to AI model."""
@@ -212,7 +307,7 @@ If no matches: NO_MATCHES"""
                           conversation_history: str = "", top_n: int = 7) -> List[Dict[str, Any]]:
         """Get product recommendations based on tags."""
         
-        important_tags, regular_tags, category_name = self.convert_to_searchable_tags(tags)
+        important_tags, regular_tags, category_name = self.convert_to_searchable_tags(user_query, conversation_history, tags)
         
         print(important_tags, regular_tags, category_name)
         # Get candidate products
