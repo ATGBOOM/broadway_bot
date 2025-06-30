@@ -3,19 +3,23 @@ from fastapi.responses import HTMLResponse
 import json
 import asyncio
 from typing import Dict, Any
+
+# Import config first to set environment variables
+import config
+
 from occasionService import OccasionService
 from reccomendationBot import RecommendationService
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
 
 app = FastAPI(title="Broadway Fashion Bot WebSocket")
 
-# Initialize services
-API_KEY = os.getenv('OPENAI_API_KEY')
-occasion_service = OccasionService(API_KEY)
-recommendation_service = RecommendationService()
+# Initialize services - they will use the environment variable set by config.py
+try:
+    occasion_service = OccasionService()
+    recommendation_service = RecommendationService()
+    print("✅ Services initialized successfully")
+except Exception as e:
+    print(f"❌ Error initializing services: {e}")
+    raise
 
 class ChatSession:
     def __init__(self):
@@ -30,13 +34,11 @@ chat_sessions: Dict[str, ChatSession] = {}
 async def websocket_endpoint(websocket: WebSocket, client_id: str):
     await websocket.accept()
     
-    # Initialize chat session
     if client_id not in chat_sessions:
         chat_sessions[client_id] = ChatSession()
     
     session = chat_sessions[client_id]
     
-    # Send welcome message
     await websocket.send_text(json.dumps({
         "type": "bot_message",
         "message": "👋 Welcome to Broadway Fashion! I'm here to help you find the perfect outfit. What's the occasion?",
@@ -45,7 +47,6 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
     
     try:
         while True:
-            # Receive message from client
             data = await websocket.receive_text()
             message_data = json.loads(data)
             user_input = message_data.get("message", "").strip()
@@ -53,14 +54,12 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
             if not user_input:
                 continue
             
-            # Echo user message
             await websocket.send_text(json.dumps({
                 "type": "user_message", 
                 "message": user_input,
                 "timestamp": asyncio.get_event_loop().time()
             }))
             
-            # Process the user input
             await process_user_input(websocket, session, user_input)
             
     except WebSocketDisconnect:
@@ -69,124 +68,74 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
             del chat_sessions[client_id]
     except Exception as e:
         print(f"WebSocket error: {e}")
-        await websocket.send_text(json.dumps({
-            "type": "error",
-            "message": f"Connection error: {str(e)}"
-        }))
 
 async def process_user_input(websocket: WebSocket, session: ChatSession, user_input: str):
     """Process user input and send appropriate response"""
     
     try:
-        # Send typing indicator
         await websocket.send_text(json.dumps({
             "type": "typing",
             "message": "Bot is thinking...",
         }))
         
-        # Extract parameters from user input
         parameters = occasion_service.extract_parameters(user_input, session.conversation_history)
-        print("Extracted parameters:", parameters)
         session.current_parameters = parameters
         
-        # Calculate confidence score
         confidence_score = occasion_service.get_confidence_score(parameters)
         missing_params = occasion_service.get_missing_core_parameters(parameters)
         
-        print(f"Confidence: {confidence_score}, Missing: {missing_params}")
-        
-        # Send parameter extraction status
         await websocket.send_text(json.dumps({
             "type": "debug_info",
-            "parameters": parameters,
             "confidence_score": confidence_score,
             "missing_parameters": missing_params
         }))
         
-        # Check if we have enough information to recommend
         gender_available = parameters.get('core_parameters', {}).get('gender') is not None
         
         if not gender_available or confidence_score < 0.3:
-            # Need more information - ask follow-up questions
-            try:
-                followup_message = occasion_service.generate_followup_questions(
-                    missing_params, max_questions=2  # ✅ Fixed - only 2 parameters
-                )
-            except Exception as e:
-                print(f"Error generating followup: {e}")
-                followup_message = "Could you tell me more about what you're looking for? What's the occasion and are you looking for men's or women's options?"
+            followup_message = occasion_service.generate_followup_questions(missing_params, max_questions=2)
             
             await websocket.send_text(json.dumps({
                 "type": "bot_message",
                 "message": followup_message,
-                "message_type": "followup_question",
-                "missing_parameters": missing_params,
-                "confidence_score": confidence_score
+                "message_type": "followup_question"
             }))
             
         else:
-            # We have enough info - generate recommendations
             await generate_recommendations(websocket, session, user_input, parameters, confidence_score)
         
-        # Update conversation history
         session.conversation_history += f" {user_input}"
         
     except Exception as e:
         print(f"Error processing user input: {e}")
         await websocket.send_text(json.dumps({
             "type": "error",
-            "message": f"Sorry, I encountered an error: {str(e)}",
-            "error_details": str(e)
+            "message": f"Sorry, I encountered an error: {str(e)}"
         }))
 
 async def generate_recommendations(websocket: WebSocket, session: ChatSession, user_input: str, parameters: Dict[str, Any], confidence_score: float):
     """Generate and send product recommendations"""
     
     try:
-        # Get flattened tags
-        try:
-            parameters_flat = occasion_service.get_all_tags_flat(parameters)
-            all_tags = parameters_flat["core_tags"] + parameters_flat["inferred_tags"]
-        except Exception as e:
-            print(f"Error getting tags: {e}")
-            # Fallback: use convert_parameters_to_product_tags if get_all_tags_flat doesn't exist
-            tags_result = occasion_service.convert_parameters_to_product_tags(parameters)
-            all_tags = tags_result["important_tags"] + tags_result["regular_tags"]
+        parameters_flat = occasion_service.get_all_tags_flat(parameters)
+        all_tags = parameters_flat["core_tags"] + parameters_flat["inferred_tags"]
         
-        # Get gender for filtering - convert list to string
         gender = parameters.get('core_parameters', {}).get('gender')
         if isinstance(gender, list):
             gender = gender[0] if gender else None
         
-        print(f"All tags for recommendation: {all_tags}")
-        print(f"Gender filter: {gender}")
-        
-        # Generate recommendations
         recommendations = recommendation_service.get_recommendations(
             user_input, 
             all_tags, 
-            gender=[gender] if gender else None,  # ✅ Pass as list like your method expects
-            category_name=None,
+            gender=[gender] if gender else None,
             conversation_history=session.conversation_history
         )
         
         session.current_recommendations = recommendations
-        print(f"Generated {len(recommendations)} recommendations")
         
-        # Generate insightful message
-        try:
-            insightful_message = occasion_service.generate_insightful_statement(
-                user_input, 
-                session.conversation_history, 
-                recommendations, 
-                parameters
-            )
-        except Exception as e:
-            print(f"Error generating insightful statement: {e}")
-            if recommendations:
-                insightful_message = f"Great! I found {len(recommendations)} perfect options for you!"
-            else:
-                insightful_message = "I couldn't find any products matching your requirements. Let me ask a few more questions."
+        insightful_message = occasion_service.generate_insightful_statement(
+            user_input, session.conversation_history, recommendations, parameters
+        )
             
         await websocket.send_text(json.dumps({
             "type": "bot_message",
@@ -195,7 +144,6 @@ async def generate_recommendations(websocket: WebSocket, session: ChatSession, u
         }))
         
         if recommendations:
-            # Send recommendations
             await websocket.send_text(json.dumps({
                 "type": "recommendations",
                 "recommendations": [
@@ -205,35 +153,15 @@ async def generate_recommendations(websocket: WebSocket, session: ChatSession, u
                         "title": rec['title'],
                         "brand_name": rec['brand_name'],
                         "price": rec.get('price', 'N/A'),
-                        "matched_important_tags": rec['matched_important_tags'],
-                        "matched_regular_tags": rec['matched_regular_tags'],
                         "total_score": rec['total_score']
                     }
                     for i, rec in enumerate(recommendations)
                 ]
             }))
-            
-            # If confidence is still low, ask follow-up questions
-            if confidence_score < 0.5:
-                missing_params = occasion_service.get_missing_core_parameters(parameters)
-                if missing_params:
-                    try:
-                        followup_message = occasion_service.generate_followup_questions(
-                            missing_params, max_questions=1  # ✅ Fixed - only 2 parameters
-                        )
-                        
-                        await websocket.send_text(json.dumps({
-                            "type": "bot_message", 
-                            "message": f"I'd love to refine these recommendations! {followup_message}",
-                            "message_type": "followup_after_recommendations"
-                        }))
-                    except Exception as e:
-                        print(f"Error generating followup after recommendations: {e}")
         else:
             await websocket.send_text(json.dumps({
                 "type": "bot_message",
-                "message": "I couldn't find any products matching your requirements. Could you try describing what you're looking for differently?",
-                "message_type": "no_recommendations"
+                "message": "I couldn't find any products matching your requirements. Could you try describing what you're looking for differently?"
             }))
             
     except Exception as e:
@@ -292,7 +220,6 @@ async def get_chat_interface():
             
             socket.onopen = function(event) {
                 console.log('Connected to bot');
-                addMessage('Connected to Broadway Fashion Bot!', 'debug');
             };
             
             socket.onmessage = function(event) {
@@ -302,12 +229,6 @@ async def get_chat_interface():
             
             socket.onclose = function(event) {
                 console.log('Disconnected');
-                addMessage('Connection lost. Refresh to reconnect.', 'error');
-            };
-            
-            socket.onerror = function(error) {
-                console.error('WebSocket error:', error);
-                addMessage('Connection error occurred.', 'error');
             };
         }
         
@@ -358,8 +279,7 @@ async def get_chat_interface():
                 html += `
                     <div class="recommendation-item">
                         <strong>${rec.title}</strong> by ${rec.brand_name}<br>
-                        <small>Price: ₹${rec.price} | Score: ${rec.total_score}</small><br>
-                        <small>Tags: ${rec.matched_important_tags.join(', ')}</small>
+                        <small>Price: ₹${rec.price} | Score: ${rec.total_score}</small>
                     </div>
                 `;
             });
@@ -397,4 +317,6 @@ async def health_check():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    import os
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
