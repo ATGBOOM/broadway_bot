@@ -2,7 +2,7 @@ import json
 from typing import Dict, List, Optional, Any
 from openai import OpenAI
 from reccomendationBot import RecommendationService
-
+import os
 
 
 class OccasionService:
@@ -14,7 +14,8 @@ class OccasionService:
         Args:
             api_key (str): OpenAI API key
         """
-        self.client = OpenAI(api_key=api_key)
+        api = api_key or os.getenv('OPENAI_API_KEY')
+        self.client = OpenAI(api)
         
         self.core_parameters = [
             "occasion", "time", "location", "body_type", "budget", "gender"
