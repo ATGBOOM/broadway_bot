@@ -55,16 +55,42 @@ class RecommendationService:
         if not all_input_tags:
             return [], [], "Clothing"
         
-        prompt = f"""Convert these tags into e-commerce product tags and categorize them.
+        prompt = f"""You are a product catalog specialist. Convert these style tags into actual searchable product tags and determine the product category.
 
-INPUT TAGS: {all_input_tags}
-CATEGORIES: {self.categories}
+**INPUT TAGS:**
+All tags : {all_input_tags}
 
-Convert tags to realistic product tags (lowercase, hyphens). Separate into:
-- IMPORTANT: Direct requirements (product types, occasions, formality)
-- REGULAR: Supporting tags (colors, aesthetics, comfort)
+**YOUR TASK:**
+1. Convert all tags into realistic e-commerce product tags (lowercase, hyphens, practical)
+2. Determine the main product category: {self.categories}
+3. Separate into IMPORTANT (explicit requirements) and REGULAR (supporting/mood tags)
 
-Format:
+**TAG CONVERSION EXAMPLES:**
+- wedding → wedding-guest, formal, ethnic-wear, festive
+- work → office-wear, professional, business-casual, work-appropriate
+- evening → evening-wear, party-wear, date-night
+- elegant → elegant, sophisticated, classy, graceful
+- neutral → black, white, grey, navy, beige, nude
+- cotton → cotton, breathable, comfortable, casual
+- formal → formal, dressy, sophisticated, elegant
+- casual → casual, everyday, relaxed, comfortable
+
+**IMPORTANCE RULES:**
+IMPORTANT TAGS (Direct requirements):
+- Product types (shirt, dress, jeans, shoes, bags, etc.)
+- Specific occasions (wedding-guest, office-wear, party-wear)
+- Formality levels (formal, casual, business-casual)
+- Gender specifications (mens, womens, unisex)
+
+REGULAR TAGS (Supporting tags):
+- Colors and color moods (neutral, bright, jewel-tones)
+- Fabrics and comfort (cotton, breathable, comfortable)
+- Aesthetic vibes (elegant, classic, trendy, sophisticated)
+- Style descriptors (minimalist, bohemian, vintage)
+
+**OUTPUT FORMAT:**
+Return exactly in this format:
+
 CATEGORY:
 - CategoryName
 
@@ -72,7 +98,21 @@ IMPORTANT:
 tag1, tag2, tag3
 
 REGULAR:
-tag1, tag2, tag3"""
+tag1, tag2, tag3, tag4
+
+**EXAMPLE:**
+Input Important: ["wedding", "formal"], Regular: ["elegant", "jewel_tones"]
+Output:
+CATEGORY:
+- Clothing
+
+IMPORTANT:
+wedding-guest, formal, ethnic-wear
+
+REGULAR:
+elegant, sophisticated, jewel-tones, festive, dressy
+
+Convert the tags now:"""
 
         try:
             response = self._call_ai(prompt)
