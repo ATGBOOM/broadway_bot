@@ -15,9 +15,7 @@ class RecommendationService:
         self.product_service = ProductDataService(json_file)
         self.all_products = self._load_all_products()
         self.categories = list(self.all_products.keys())
-        self.client = OpenAI(
-                                API_KEY
-                            )
+        self.client = OpenAI()
     
     def _load_all_products(self) -> Dict[str, List[Dict[str, Any]]]:
         """Load all products from the ProductDataService organized by category."""
