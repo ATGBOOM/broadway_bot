@@ -14,8 +14,8 @@ class OccasionService:
         Args:
             api_key (str): OpenAI API key
         """
-        api = api_key or os.getenv('OPENAI_API_KEY')
-        self.client = OpenAI(api)
+
+        self.client = OpenAI(api_key)
         
         self.core_parameters = [
             "occasion", "time", "location", "body_type", "budget", "gender"
