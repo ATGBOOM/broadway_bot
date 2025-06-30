@@ -2,17 +2,22 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
 import json
 import asyncio
+import os
 from typing import Dict, Any
-
-# Import config first to set environment variables
-import config
-
 from occasionService import OccasionService
 from reccomendationBot import RecommendationService
 
 app = FastAPI(title="Broadway Fashion Bot WebSocket")
 
-# Initialize services - they will use the environment variable set by config.py
+# Check if API key is available
+api_key = os.getenv('OPENAI_API_KEY')
+if not api_key:
+    print("❌ OPENAI_API_KEY environment variable not set!")
+    print("Available env vars:", list(os.environ.keys()))
+else:
+    print("✅ OPENAI_API_KEY found in environment")
+
+# Initialize services
 try:
     occasion_service = OccasionService()
     recommendation_service = RecommendationService()
@@ -133,9 +138,13 @@ async def generate_recommendations(websocket: WebSocket, session: ChatSession, u
         
         session.current_recommendations = recommendations
         
-        insightful_message = occasion_service.generate_insightful_statement(
-            user_input, session.conversation_history, recommendations, parameters
-        )
+        try:
+            insightful_message = occasion_service.generate_insightful_statement(
+                user_input, session.conversation_history, recommendations, parameters
+            )
+        except Exception as e:
+            print(f"Error generating insightful statement: {e}")
+            insightful_message = f"Great! I found {len(recommendations)} perfect options for you!"
             
         await websocket.send_text(json.dumps({
             "type": "bot_message",
@@ -311,12 +320,21 @@ async def get_chat_interface():
 </html>
     """)
 
+@app.get("/debug")
+async def debug_environment():
+    """Debug endpoint"""
+    api_key = os.getenv('OPENAI_API_KEY')
+    return {
+        "api_key_exists": bool(api_key),
+        "api_key_length": len(api_key) if api_key else 0,
+        "environment_vars": list(os.environ.keys())
+    }
+
 @app.get("/health")
 async def health_check():
     return {"status": "healthy", "service": "Broadway Fashion Bot WebSocket"}
 
 if __name__ == "__main__":
     import uvicorn
-    import os
     port = int(os.getenv("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)

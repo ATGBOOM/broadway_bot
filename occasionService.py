@@ -8,7 +8,7 @@ class OccasionService:
     
     def __init__(self):
         """Initialize the OccasionService with OpenAI client."""
-        # OpenAI client will automatically use OPENAI_API_KEY environment variable
+        # OpenAI() automatically uses OPENAI_API_KEY environment variable
         self.client = OpenAI()
         
         self.core_parameters = [
