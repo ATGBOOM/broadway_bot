@@ -27,10 +27,65 @@ class OccasionService:
         try:
             response = self._call_ai(prompt)
             parameters = self._parse_ai_response(response)
+            
+            # If parsing failed, use simple keyword detection as fallback
+            if not parameters or not parameters.get('core_parameters'):
+                print("❌ AI parsing failed, using keyword fallback")
+                return self._keyword_fallback(user_input)
+                
             return parameters
         except Exception as e:
             print(f"Error in parameter extraction: {e}")
-            return self._get_empty_parameters()
+            return self._keyword_fallback(user_input)
+    
+    def _keyword_fallback(self, user_input: str) -> Dict[str, Any]:
+        """Simple keyword-based parameter extraction as fallback"""
+        user_lower = user_input.lower()
+        
+        # Simple keyword detection
+        occasion = None
+        if any(word in user_lower for word in ['wedding', 'marriage', 'shaadi']):
+            occasion = ['wedding']
+        elif any(word in user_lower for word in ['work', 'office', 'meeting']):
+            occasion = ['work']
+        elif any(word in user_lower for word in ['party', 'celebration']):
+            occasion = ['party']
+        elif any(word in user_lower for word in ['date', 'dinner']):
+            occasion = ['date']
+        
+        gender = None
+        if any(word in user_lower for word in ['women', 'female', 'girl', 'dress', 'lady']):
+            gender = ['female']
+        elif any(word in user_lower for word in ['men', 'male', 'guy', 'man']):
+            gender = ['male']
+        
+        time = None
+        if any(word in user_lower for word in ['evening', 'night', 'tonight']):
+            time = ['evening']
+        elif any(word in user_lower for word in ['morning', 'am']):
+            time = ['morning']
+        elif any(word in user_lower for word in ['afternoon', 'lunch']):
+            time = ['afternoon']
+        
+        return {
+            "core_parameters": {
+                "occasion": occasion,
+                "time": time,
+                "location": None,
+                "body_type": None,
+                "budget": None,
+                "gender": gender
+            },
+            "inferred_parameters": {
+                "weather": None,
+                "formality": ['formal'] if occasion == ['wedding'] else None,
+                "mood": ['elegant'] if occasion == ['wedding'] else None,
+                "color": None,
+                "fabric": None,
+                "trend": None,
+                "age": None
+            }
+        }
     
     def _create_extraction_prompt(self, user_input: str, conversation_history: str) -> str:
         """Create the prompt for AI parameter extraction."""
@@ -48,30 +103,63 @@ Extract the following parameters and return them in JSON format. Each parameter 
 - body_type: ["petite", "tall", "curvy", "athletic", "slim", "plus-size", etc.]
 - budget: ["under_1000", "1000-3000", "3000-5000", "5000-10000", "above_10000", "luxury"]
 - gender: ["male", "female", "unisex"]
-- age: ["teen", "young_adult", "adult", "middle_aged", "senior"]
 
 **INFERRED PARAMETERS (Infer based on context and occasion):**
-- weather: ["hot", "cold", "rainy", "humid", "mild", "sunny", etc.] - if they give some country or region get its weather
+- weather: ["hot", "cold", "rainy", "humid", "mild", "sunny", etc.]
 - formality: ["casual", "smart_casual", "business_casual", "formal", "black_tie"]
 - mood: ["confident", "romantic", "playful", "professional", "elegant", "edgy", "comfortable"]
 - color: ["bright", "neutral", "dark", "pastels", "jewel_tones", "earth_tones", "red", "blue", etc.]
-- brand: ["luxury", "premium", "mid_range", "affordable", "sustainable", "trendy"]
 - fabric: ["cotton", "silk", "denim", "wool", "linen", "synthetic", "breathable", "formal"]
 - trend: ["classic", "trendy", "vintage", "minimalist", "bohemian", "streetwear", "traditional"]
+- age: ["teen", "young_adult", "adult", "middle_aged", "senior"]
 
-**RULES:**
-1. Each parameter should be a LIST of relevant tags, or null if not applicable
-2. Include multiple relevant values for each parameter (e.g., occasion could be ["wedding", "formal_event"])
-3. For colors, include both general (["neutral", "dark"]) and specific (["navy", "black"]) if mentioned
-4. Be conservative - only include values you're confident about
-5. For inferred parameters, use logical connections (e.g., wedding → ["formal", "elegant"])
-6. Consider cultural context (Indian fashion context)
-7. Maximum 3-4 values per parameter to keep it focused
+**CRITICAL: Return ONLY valid JSON. No extra text before or after the JSON.**
 
-**OUTPUT FORMAT:**
-Return ONLY a valid JSON object. Use null for missing parameters, and arrays for present ones.
+**REQUIRED FORMAT:**
+{{
+  "core_parameters": {{
+    "occasion": null,
+    "time": null,
+    "location": null,
+    "body_type": null,
+    "budget": null,
+    "gender": null
+  }},
+  "inferred_parameters": {{
+    "weather": null,
+    "formality": null,
+    "mood": null,
+    "color": null,
+    "fabric": null,
+    "trend": null,
+    "age": null
+  }}
+}}
 
-Now analyze the user input and return the JSON:"""
+Replace null with arrays of relevant values or keep as null if not applicable.
+
+Example for "I need a dress for a wedding tonight":
+{{
+  "core_parameters": {{
+    "occasion": ["wedding"],
+    "time": ["evening"],
+    "location": null,
+    "body_type": null,
+    "budget": null,
+    "gender": ["female"]
+  }},
+  "inferred_parameters": {{
+    "weather": null,
+    "formality": ["formal"],
+    "mood": ["elegant"],
+    "color": ["jewel_tones"],
+    "fabric": ["silk"],
+    "trend": ["classic"],
+    "age": null
+  }}
+}}
+
+Now analyze the user input and return ONLY the JSON:"""
         return prompt
     
     def _call_ai(self, prompt: str) -> str:
@@ -88,28 +176,69 @@ Now analyze the user input and return the JSON:"""
     def _parse_ai_response(self, ai_response: str) -> Dict[str, Any]:
         """Parse the AI response JSON into a dictionary."""
         try:
+            # Clean the response - remove any text before/after JSON
             response = ai_response.strip()
+            
+            # Debug: Print the raw response
+            print(f"Raw AI Response: {response[:500]}...")
+            
+            # Try to find JSON content between braces
             start_idx = response.find('{')
             end_idx = response.rfind('}') + 1
             
             if start_idx != -1 and end_idx != 0:
                 json_content = response[start_idx:end_idx]
-                parameters = json.loads(json_content)
+                print(f"Extracted JSON: {json_content[:200]}...")
                 
-                if "core_parameters" in parameters and "inferred_parameters" in parameters:
-                    return parameters
-                else:
-                    print("Invalid JSON structure in AI response")
-                    return self._get_empty_parameters()
+                try:
+                    parameters = json.loads(json_content)
+                    
+                    # Validate structure
+                    if "core_parameters" in parameters and "inferred_parameters" in parameters:
+                        print("✅ Valid JSON structure found")
+                        return parameters
+                    else:
+                        print("❌ Invalid JSON structure - missing required keys")
+                        print(f"Available keys: {list(parameters.keys())}")
+                        return self._get_empty_parameters()
+                        
+                except json.JSONDecodeError as json_error:
+                    print(f"❌ JSON decode error: {json_error}")
+                    # Try to fix common JSON issues
+                    return self._try_fix_json(json_content)
             else:
-                print("No JSON found in AI response")
+                print("❌ No JSON braces found in response")
                 return self._get_empty_parameters()
                 
-        except json.JSONDecodeError as e:
-            print(f"JSON parsing error: {e}")
-            return self._get_empty_parameters()
         except Exception as e:
-            print(f"Unexpected error parsing AI response: {e}")
+            print(f"❌ Unexpected error parsing AI response: {e}")
+            return self._get_empty_parameters()
+    
+    def _try_fix_json(self, json_content: str) -> Dict[str, Any]:
+        """Try to fix common JSON issues"""
+        try:
+            # Common fixes
+            fixed_content = json_content
+            
+            # Fix trailing commas
+            import re
+            fixed_content = re.sub(r',(\s*[}\]])', r'\1', fixed_content)
+            
+            # Fix single quotes to double quotes
+            fixed_content = fixed_content.replace("'", '"')
+            
+            # Try parsing again
+            parameters = json.loads(fixed_content)
+            
+            if "core_parameters" in parameters and "inferred_parameters" in parameters:
+                print("✅ Fixed JSON successfully")
+                return parameters
+            else:
+                print("❌ Fixed JSON still has wrong structure")
+                return self._get_empty_parameters()
+                
+        except Exception as e:
+            print(f"❌ Could not fix JSON: {e}")
             return self._get_empty_parameters()
     
     def _get_empty_parameters(self) -> Dict[str, Any]:
