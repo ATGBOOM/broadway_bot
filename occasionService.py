@@ -4,7 +4,7 @@ from openai import OpenAI
 import os
 
 class OccasionService:
-    PARAMETER_PRIORITY = ["gender", "occasion", "mood", "time", "budget", "location", "body_type"]
+    PARAMETER_PRIORITY = ["gender", "occasion"]
     
     def __init__(self):
         """Initialize the OccasionService with OpenAI client."""
@@ -314,7 +314,6 @@ Now analyze the user input and return ONLY the JSON:"""
         
         prompt = f"""
         You are a super-stylish friend who is on top of all the latest Gen Z fashion trends, aesthetics, and terminology 
-        (like Y2K revival, streetwear, gorpcore, baggy silhouettes, cargos, baby tees, etc.).
         
         An India friend has made the following request: "{user_query}"
         Your previous conversation: "{conversation}"
@@ -324,7 +323,7 @@ Now analyze the user input and return ONLY the JSON:"""
         YOUR TASK:
         Give them a cool, insightful tip in a friendly, conversational tone. Your advice should follow this structure:
         1. Suggest a current, Gen Z recommendation that fits the occasion and the recs given to your friend
-        2. Educate on why they should make this choice - this should be max 2 phrases
+        2. Maintain conversation and answer any followup questions
         
         GUIDELINES:
         - Use current fashion terms correctly 
@@ -340,30 +339,33 @@ Now analyze the user input and return ONLY the JSON:"""
             print(f"Error generating Gen Z insightful statement: {e}")
             return f"Great! I found some perfect options for your {occasion}!"
 
-    def _get_prioritized_missing_params(self, missing_parameters: List[str], max_questions: int) -> List[str]:
+    def _get_prioritized_missing_params(self, query, missing_parameters: List[str], max_questions: int) -> List[str]:
         """Sorts the missing parameters based on a predefined priority list."""
         prioritized_list = [p for p in self.PARAMETER_PRIORITY if p in missing_parameters]
         remaining_params = [p for p in missing_parameters if p not in self.PARAMETER_PRIORITY]
         return (prioritized_list + remaining_params)[:max_questions]
 
-    def generate_followup_questions(self, missing_parameters: List[str], max_questions: int = 2) -> str:
+    def generate_followup_questions(self, query, missing_parameters: List[str], max_questions: int = 2) -> str:
         """Generates a Gen Z style tip followed by casual, direct follow-up questions."""
         if not missing_parameters:
             return "Bet. I've got all the info I need to find some fire options for you. 🔥"
 
-        params_to_ask = self._get_prioritized_missing_params(missing_parameters, max_questions)
+        #params_to_ask = self._get_prioritized_missing_params(missing_parameters, max_questions)
 
         prompt = f"""
         You are a friendly, super-stylish Gen Z Indian friend. You just gave some initial advice and now you need more info.
         
+        missing data - {missing_parameters}
+        query - {query}
+
         YOUR TASK:
-        Formulate a casual, natural question to get the following details: {', '.join(params_to_ask)}.
+        Formulate a casual, natural question to get the gender of the person or the main context needed for an occasion
         Keep it brief and bundle the questions together.
         
-        Example (if missing ['occasion', 'budget']):
-        "So to get the vibe right, what's the actual event? And what's the budget we're playing with?"
+        Example (if missing gender and occasion):
+        "So to get the vibe right, are we shopping for men or women? And wheres the vacation happening"
 
-        Example (if missing ['time', 'gender']):
+        Example (if missing gender and occasion):
         "Okay, so is this a daytime or nighttime thing? And are we looking for men's or women's styles?"
 
         Now, generate the follow-up questions.

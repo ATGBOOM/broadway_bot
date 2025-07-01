@@ -96,9 +96,10 @@ async def process_user_input(websocket: WebSocket, session: ChatSession, user_in
         }))
         
         gender_available = parameters.get('core_parameters', {}).get('gender') is not None
+        occasion = parameters.get('core_parameters', {}).get('occasion') is not None
         
-        if not gender_available or confidence_score < 0.3:
-            followup_message = occasion_service.generate_followup_questions(missing_params, max_questions=2)
+        if not gender_available or not occasion:
+            followup_message = occasion_service.generate_followup_questions(user_input, missing_params, max_questions=2)
             
             await websocket.send_text(json.dumps({
                 "type": "bot_message",
