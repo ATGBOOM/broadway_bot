@@ -121,7 +121,7 @@ class ProductDataService:
             all_subcats = {}
             for cat_name, subcats in self.categories.items():
                 for subcat_name, products in subcats.items():
-                    all_subcats[f"{cat_name}_{subcat_name}"] = {
+                    all_subcats[subcat_name] = {
                         "category": cat_name,
                         "subcategory": subcat_name,
                         "total_products": len(products),
@@ -137,6 +137,14 @@ class ProductDataService:
                 }
             }
     
+    def get_subcategory_data(self, subcategory):
+        subcat_products = {}
+        for cat_name, subcats in self.categories.items():
+            for subcat_name, products in subcats.items():
+                if subcat_name in subcategory:
+                    subcat_products[subcat_name] = products
+        return subcat_products
+
     def get_consumer_information(self, customer_id: Optional[str] = None) -> Dict[str, Any]:
         """
         Get consumer/customer information

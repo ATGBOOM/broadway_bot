@@ -6,6 +6,7 @@ import os
 from typing import Dict, Any
 from occasionService import OccasionService
 from reccomendationBot import RecommendationService
+from pairingService import PairingService  # Add this import
 
 app = FastAPI(title="Broadway Fashion Bot WebSocket")
 
@@ -21,6 +22,7 @@ else:
 try:
     occasion_service = OccasionService()
     recommendation_service = RecommendationService()
+    pairing_service = PairingService()  # Add pairing service
     print("✅ Services initialized successfully")
 except Exception as e:
     print(f"❌ Error initializing services: {e}")
@@ -32,7 +34,7 @@ class ChatSession:
             'user' : [],
             'bot' : []
         }
-        
+        self.service_mode = None  # 'occasion' or 'pairing'
         self.current_parameters = None
         self.current_recommendations = None
 
@@ -48,9 +50,10 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
     
     session = chat_sessions[client_id]
     
+    # Send initial service selection message
     await websocket.send_text(json.dumps({
         "type": "bot_message",
-        "message": "👋 Welcome to Broadway Fashion! I'm here to help you find the perfect outfit. What's the occasion?",
+        "message": "👋 Welcome to Broadway Fashion! I'm here to help you find the perfect outfit.\n\nChoose your styling mode:\n1️⃣ Occasion-based styling (weddings, work, parties, etc.)\n2️⃣ Item pairing (find what goes with specific pieces)\n\nJust type 1 or 2 to get started!",
         "timestamp": asyncio.get_event_loop().time()
     }))
     
@@ -87,34 +90,41 @@ async def process_user_input(websocket: WebSocket, session: ChatSession, user_in
             "message": "Bot is thinking...",
         }))
         
-        parameters = occasion_service.extract_parameters(user_input, session.current_parameters)
-        session.current_parameters = parameters
+        # Handle service mode selection
+        if session.service_mode is None:
+            if user_input.strip() == "1":
+                session.service_mode = "occasion"
+                await websocket.send_text(json.dumps({
+                    "type": "bot_message",
+                    "message": "Great! You've selected occasion-based styling. Tell me about the occasion - is it for work, a wedding, a party, or something else?",
+                    "message_type": "mode_selected"
+                }))
+                return
+            elif user_input.strip() == "2":
+                session.service_mode = "pairing"
+                await websocket.send_text(json.dumps({
+                    "type": "bot_message",
+                    "message": "Perfect! You've selected item pairing mode. Tell me what piece you'd like to style - for example: 'linen pants', 'black dress', 'denim jacket', etc.",
+                    "message_type": "mode_selected"
+                }))
+                return
+            else:
+                await websocket.send_text(json.dumps({
+                    "type": "bot_message",
+                    "message": "Please choose a valid option:\n1️⃣ for occasion-based styling\n2️⃣ for item pairing\n\nJust type 1 or 2!",
+                    "message_type": "invalid_selection"
+                }))
+                return
         
-        confidence_score = occasion_service.get_confidence_score(parameters)
-        missing_params = occasion_service.get_missing_core_parameters(parameters)
+        # Handle based on selected service mode
+        if session.service_mode == "occasion":
+            await handle_occasion_mode(websocket, session, user_input)
+        elif session.service_mode == "pairing":
+            await handle_pairing_mode(websocket, session, user_input)
         
-        await websocket.send_text(json.dumps({
-            "type": "debug_info",
-            "confidence_score": confidence_score,
-            "missing_parameters": missing_params
-        }))
-        
-        gender_available = parameters.get('core_parameters', {}).get('gender') is not None
-        occasion = parameters.get('core_parameters', {}).get('occasion') is not None
-        
-        if not gender_available or not occasion:
-            followup_message = parameters['follow_up_questions'][:1]
-            
-            await websocket.send_text(json.dumps({
-                "type": "bot_message",
-                "message": followup_message,
-                "message_type": "followup_question"
-            }))
-            
-        else:
-            await generate_recommendations(websocket, session, user_input, parameters, confidence_score)
+        # Update conversation history
         if session.conversation_history['user']:
-            session.conversation_history['user'] = session.conversation_history['user'].append(f"{user_input}")
+            session.conversation_history['user'].append(user_input)
         else:
             session.conversation_history['user'] = [user_input]
         
@@ -125,8 +135,94 @@ async def process_user_input(websocket: WebSocket, session: ChatSession, user_in
             "message": f"Sorry, I encountered an error: {str(e)}"
         }))
 
-async def generate_recommendations(websocket: WebSocket, session: ChatSession, user_input: str, parameters: Dict[str, Any], confidence_score: float):
-    """Generate and send product recommendations"""
+async def handle_occasion_mode(websocket: WebSocket, session: ChatSession, user_input: str):
+    """Handle occasion-based styling requests"""
+    parameters = occasion_service.extract_parameters(user_input, session.current_parameters)
+    session.current_parameters = parameters
+    
+    confidence_score = occasion_service.get_confidence_score(parameters)
+    missing_params = occasion_service.get_missing_core_parameters(parameters)
+    
+    await websocket.send_text(json.dumps({
+        "type": "debug_info",
+        "confidence_score": confidence_score,
+        "missing_parameters": missing_params
+    }))
+    
+    gender_available = parameters.get('core_parameters', {}).get('gender') is not None
+    occasion = parameters.get('core_parameters', {}).get('occasion') is not None
+    
+    if not gender_available or not occasion:
+        followup_message = parameters.get('follow_up_questions', ["Could you tell me more about the occasion and whether this is for men or women?"])
+        if isinstance(followup_message, list) and followup_message:
+            followup_message = followup_message[0]
+        
+        await websocket.send_text(json.dumps({
+            "type": "bot_message",
+            "message": followup_message,
+            "message_type": "followup_question"
+        }))
+    else:
+        await generate_occasion_recommendations(websocket, session, user_input, parameters, confidence_score)
+
+async def handle_pairing_mode(websocket: WebSocket, session: ChatSession, user_input: str):
+    """Handle item pairing requests"""
+    try:
+        # Extract the item from user input
+        item_to_pair = user_input.lower().strip()
+        
+        # Get complementary products
+        complements = pairing_service.getComplementProducts(item_to_pair)
+        
+        if complements:
+            # Generate a friendly response about the pairings
+            pairing_message = f"Perfect! For {item_to_pair}, here are some great pieces that would complement it beautifully. These combinations will create cohesive, stylish looks!"
+            
+            await websocket.send_text(json.dumps({
+                "type": "bot_message",
+                "message": pairing_message,
+                "message_type": "pairing_intro"
+            }))
+            
+            # Send the complementary items as recommendations
+            await websocket.send_text(json.dumps({
+                "type": "recommendations",
+                "recommendations": [
+                    {
+                        "id": i + 1,
+                        "product_id": comp['product_id'],
+                        "title": comp['title'],
+                        "brand_name": comp['brand_name'],
+                        "price": comp.get('price', 'N/A'),
+                        "total_score": len(comp.get('tags', [])),  # Use tag count as score
+                        "pairing_tags": list(comp.get('tags', []))  # Show matching tags
+                    }
+                    for i, comp in enumerate(complements[:7])  # Limit to 7 items
+                ]
+            }))
+            
+            # Update conversation history for pairing service
+            if session.conversation_history['bot']:
+                session.conversation_history['bot'].append(pairing_message)
+            else:
+                session.conversation_history['bot'] = [pairing_message]
+                
+        else:
+            await websocket.send_text(json.dumps({
+                "type": "bot_message",
+                "message": f"I couldn't find specific pairings for '{item_to_pair}'. Could you try describing the item differently? For example: 'blue jeans', 'white shirt', 'black boots', etc.",
+                "message_type": "no_pairings_found"
+            }))
+            
+    except Exception as e:
+        print(f"Error in pairing mode: {e}")
+        await websocket.send_text(json.dumps({
+            "type": "error",
+            "message": f"Error finding pairings: {str(e)}"
+        }))
+
+async def generate_occasion_recommendations(websocket: WebSocket, session: ChatSession, user_input: str, parameters: Dict[str, Any], confidence_score: float):
+    """Generate and send product recommendations for occasion-based styling"""
     
     try:
         parameters_flat = occasion_service.get_all_tags_flat(parameters)
@@ -148,12 +244,11 @@ async def generate_recommendations(websocket: WebSocket, session: ChatSession, u
         session.current_recommendations = recommendations
         
         try:
-
             insightful_message = occasion_service.generate_insightful_statement(
                 user_input, session.conversation_history, recommendations, parameters
             )
             if session.conversation_history['bot']:
-                session.conversation_history['bot'] = session.conversation_history['bot'].append(insightful_message)
+                session.conversation_history['bot'].append(insightful_message)
             else:
                 session.conversation_history['bot'] = [insightful_message]
         except Exception as e:
@@ -209,9 +304,10 @@ async def get_chat_interface():
         .chat-messages { height: 500px; overflow-y: auto; padding: 20px; }
         .message { margin: 10px 0; padding: 10px 15px; border-radius: 18px; max-width: 70%; }
         .user-message { background: #667eea; color: white; margin-left: auto; text-align: right; }
-        .bot-message { background: #f1f1f1; color: #333; }
+        .bot-message { background: #f1f1f1; color: #333; white-space: pre-line; }
         .recommendations { background: #e8f5e8; border: 1px solid #4caf50; border-radius: 10px; padding: 15px; margin: 10px 0; }
         .recommendation-item { background: white; border-radius: 8px; padding: 12px; margin: 8px 0; border-left: 4px solid #667eea; }
+        .pairing-tags { font-size: 11px; color: #666; margin-top: 5px; }
         .chat-input-container { display: flex; padding: 20px; }
         .chat-input { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 25px; }
         .send-button { margin-left: 10px; padding: 12px 24px; background: #667eea; color: white; border: none; border-radius: 25px; cursor: pointer; }
@@ -228,7 +324,7 @@ async def get_chat_interface():
         </div>
         <div class="chat-messages" id="messages"></div>
         <div class="chat-input-container">
-            <input type="text" id="messageInput" class="chat-input" placeholder="Tell me about the occasion..." onkeypress="handleKeyPress(event)">
+            <input type="text" id="messageInput" class="chat-input" placeholder="Choose 1 or 2, or describe what you're looking for..." onkeypress="handleKeyPress(event)">
             <button class="send-button" onclick="sendMessage()">Send</button>
         </div>
     </div>
@@ -303,8 +399,14 @@ async def get_chat_interface():
                     <div class="recommendation-item">
                         <strong>${rec.title}</strong> by ${rec.brand_name}<br>
                         <small>Price: ₹${rec.price} | Score: ${rec.total_score}</small>
-                    </div>
                 `;
+                
+                // Add pairing tags if available
+                if (rec.pairing_tags && rec.pairing_tags.length > 0) {
+                    html += `<div class="pairing-tags">Matching elements: ${rec.pairing_tags.slice(0, 5).join(', ')}</div>`;
+                }
+                
+                html += `</div>`;
             });
             
             recDiv.innerHTML = html;
