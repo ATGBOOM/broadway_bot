@@ -86,10 +86,10 @@ class RecommendationService:
                     })
             complements.sort(key=lambda x: len(x['tags']), reverse=True)
         
-            # prod_ids = self.checkRecs(f"{aitext} {user_query}", "", complements[:5])
-            # filtered_complements = [comp for comp in complements if comp['product_id'] in prod_ids][:5]
+            prod_ids = self.checkRecs(f"{aitext} {user_query}", "", complements[:5])
+            filtered_complements = [comp for comp in complements if comp['product_id'] in prod_ids][:5]
 
-            return_prods.extend(complements[:5])
+            return_prods.extend(filtered_complements[:4])
         return return_prods
 
     def convert_to_searchable_tags(self, user_query, conversation_history, all_input_tags, allowed_categories) -> Tuple[List[str], List[str], str]:
