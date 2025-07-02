@@ -28,7 +28,11 @@ except Exception as e:
 
 class ChatSession:
     def __init__(self):
-        self.conversation_history = ""
+        self.conversation_history = {
+            'user' : [],
+            'bot' : []
+        }
+        
         self.current_parameters = None
         self.current_recommendations = None
 
@@ -76,14 +80,14 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
 
 async def process_user_input(websocket: WebSocket, session: ChatSession, user_input: str):
     """Process user input and send appropriate response"""
-    
+    print(session.conversation_history)
     try:
         await websocket.send_text(json.dumps({
             "type": "typing",
             "message": "Bot is thinking...",
         }))
         
-        parameters = occasion_service.extract_parameters(user_input, session.conversation_history)
+        parameters = occasion_service.extract_parameters(user_input, session.current_parameters)
         session.current_parameters = parameters
         
         confidence_score = occasion_service.get_confidence_score(parameters)
@@ -99,7 +103,7 @@ async def process_user_input(websocket: WebSocket, session: ChatSession, user_in
         occasion = parameters.get('core_parameters', {}).get('occasion') is not None
         
         if not gender_available or not occasion:
-            followup_message = occasion_service.generate_followup_questions(user_input, missing_params, max_questions=2)
+            followup_message = parameters['follow_up_questions'][:1]
             
             await websocket.send_text(json.dumps({
                 "type": "bot_message",
@@ -109,8 +113,10 @@ async def process_user_input(websocket: WebSocket, session: ChatSession, user_in
             
         else:
             await generate_recommendations(websocket, session, user_input, parameters, confidence_score)
-        
-        session.conversation_history += f" {user_input}"
+        if session.conversation_history['user']:
+            session.conversation_history['user'] = session.conversation_history['user'].append(f"{user_input}")
+        else:
+            session.conversation_history['user'] = [user_input]
         
     except Exception as e:
         print(f"Error processing user input: {e}")
@@ -125,24 +131,31 @@ async def generate_recommendations(websocket: WebSocket, session: ChatSession, u
     try:
         parameters_flat = occasion_service.get_all_tags_flat(parameters)
         all_tags = parameters_flat["core_tags"] + parameters_flat["inferred_tags"]
-        
+
         gender = parameters.get('core_parameters', {}).get('gender')
         if isinstance(gender, list):
             gender = gender[0] if gender else None
-        
+        categories = parameters['product_categories']
+
         recommendations = recommendation_service.get_recommendations(
-            user_input, 
-            all_tags, 
+            user_query=user_input, 
+            tags=all_tags, 
             gender=[gender] if gender else None,
+            categories=categories,
             conversation_history=session.conversation_history
         )
         
         session.current_recommendations = recommendations
         
         try:
+
             insightful_message = occasion_service.generate_insightful_statement(
                 user_input, session.conversation_history, recommendations, parameters
             )
+            if session.conversation_history['bot']:
+                session.conversation_history['bot'] = session.conversation_history['bot'].append(insightful_message)
+            else:
+                session.conversation_history['bot'] = [insightful_message]
         except Exception as e:
             print(f"Error generating insightful statement: {e}")
             insightful_message = f"Great! I found {len(recommendations)} perfect options for you!"

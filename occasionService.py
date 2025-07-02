@@ -12,22 +12,22 @@ class OccasionService:
         self.client = OpenAI()
         
         self.core_parameters = [
-            "occasion", "time", "location", "body_type", "budget", "gender"
+            "occasion", "time", "location", "body_type", "budget", "gender", "specifications"
         ]
         
         self.inferred_parameters = [
-            "weather", "formality", "mood", "color", "fabric", "trend", "age"
+            "weather", "formality", "mood", "color", "fabric", "trend", "age", 
         ]
 
     # Rest of your methods remain the same...
-    def extract_parameters(self, user_input: str, conversation_history: str = "") -> Dict[str, Any]:
+    def extract_parameters(self, user_input: str, parameters) -> Dict[str, Any]:
         """Extract parameters from user input using AI."""
-        prompt = self._create_extraction_prompt(user_input, conversation_history)
+        prompt = self._create_extraction_prompt(user_input, parameters)
         
         try:
             response = self._call_ai(prompt)
             parameters = self._parse_ai_response(response)
-            
+            print(parameters, "parameters")
             # If parsing failed, use simple keyword detection as fallback
             if not parameters or not parameters.get('core_parameters'):
                 print("❌ AI parsing failed, using keyword fallback")
@@ -87,43 +87,84 @@ class OccasionService:
             }
         }
     
-    def _create_extraction_prompt(self, user_input: str, conversation_history: str) -> str:
+    def _create_extraction_prompt(self, user_input: str, parameters) -> str:
         """Create the prompt for AI parameter extraction."""
-        prompt = f"""You are an expert fashion stylist and personal shopper. Analyze the user's request and extract relevant parameters for outfit recommendations.
+
+        
+        prompt = f"""
+You are an expert fashion and beauty stylist and personal shopper AI. Your task is to analyze the current user query in the context of **previously extracted parameters**, and return an **updated parameter set**, **relevant product categories**, and any **essential follow-up questions**.
+
+---
 
 **USER INPUT:** {user_input}
-**CONVERSATION HISTORY:** {conversation_history}
 
-Extract the following parameters and return them in JSON format. Each parameter should be a LIST of relevant values or null if not applicable.
+**PREVIOUS PARAMETERS:**  
+These parameters were extracted from earlier queries or conversation:  
+{parameters}
 
-**CORE PARAMETERS (Extract if and only if explicitly mentioned and clearly implied):**
-- occasion: ["wedding", "work", "party", "date", "travel", "festival", etc.]
-- time: ["morning", "afternoon", "evening", "night", "specific_time"]
-- location: ["indoor", "outdoor", "office", "restaurant", "home", "beach", "mall", "India", "Kenya" etc.]
-- body_type: ["petite", "tall", "curvy", "athletic", "slim", "plus-size", etc.]
-- budget: ["under_1000", "1000-3000", "3000-5000", "5000-10000", "above_10000", "luxury"]
-- gender: ["male", "female", "unisex"]
+---
 
-**INFERRED PARAMETERS (Infer based on context and occasion):**
-- weather: ["hot", "cold", "rainy", "humid", "mild", "sunny", etc.]
-- formality: ["casual", "smart_casual", "business_casual", "formal", "black_tie"]
-- mood: ["confident", "romantic", "playful", "professional", "elegant", "edgy", "comfortable"]
-- color: ["bright", "neutral", "dark", "pastels", "jewel_tones", "earth_tones", "red", "blue", etc.]
-- fabric: ["cotton", "silk", "denim", "wool", "linen", "synthetic", "breathable", "formal"]
-- trend: ["classic", "trendy", "vintage", "minimalist", "bohemian", "streetwear", "traditional"]
-- age: ["teen", "young_adult", "adult", "middle_aged", "senior"]
+You must now do the following:
 
-**CRITICAL: Return ONLY valid JSON. No extra text before or after the JSON.**
+---
 
-**REQUIRED FORMAT:**
+**PART 1: Extract & Update Parameters**  
+Review the current user query in light of the previous parameters. If the new input **adds**, **contradicts**, or **updates** any details, reflect that in the output.
+
+Extract the following **core** and **inferred** parameters in JSON format.  
+Each should be a **list of strings** or `null` if not applicable.
+
+### CORE PARAMETERS (Only if explicitly mentioned or clearly implied):
+- **occasion** (e.g., "wedding", "work", "party", "date", "travel", "festival")
+- **time** (e.g., "morning", "afternoon", "evening", "night", "specific_time")
+- **location** (e.g., "indoor", "outdoor", "office", "restaurant", "home", "beach", "mall", "India", "Kenya")
+- **body_type** (e.g., "petite", "tall", "curvy", "athletic", "slim", "plus-size")
+- **skin_type** (e.g., "husky", "fair", "oily", "dry", "patchy")
+- **budget** (e.g., "under_1000", "1000-3000", "3000-5000", "5000-10000", "above_10000", "luxury")
+- **gender** (e.g., "male", "female", "unisex")
+- **specifications** (e.g., "dresses", "suits", "shirts", "lipsticks", "eyeliner", "concealer", "shampoo")
+
+### INFERRED PARAMETERS (Use occasion, tone, and style to infer):
+- **weather** (e.g., "hot", "cold", "rainy", "humid", "mild", "sunny")
+- **formality** (e.g., "casual", "smart_casual", "business_casual", "formal", "black_tie")
+- **mood** (e.g., "confident", "romantic", "playful", "professional", "elegant", "edgy", "comfortable")
+- **color** (e.g., "bright", "neutral", "dark", "pastels", "jewel_tones", "earth_tones", "red", "blue")
+- **fabric** (e.g., "cotton", "silk", "denim", "wool", "linen", "synthetic", "breathable")
+- **trend** (e.g., "classic", "trendy", "vintage", "minimalist", "bohemian", "streetwear", "traditional")
+- **age** (e.g., "teen", "young_adult", "adult", "middle_aged", "senior")
+
+---
+
+**PART 2: Identify Product Categories**  
+From the combined parameter set, return a list of **relevant high-level product categories** to guide product filtering.
+
+Use ONLY categories from this list:  
+**AVAILABLE_CATEGORIES:**  
+["Clothing", "Footwear", "Accessories", "Beauty", "Personal Care"]
+
+Return 1–5 categories based on the user’s needs.
+
+---
+
+**PART 3: Ask Follow-up Questions (only if necessary)**  
+If **important information** is missing (especially `gender`), or if you need more information on the occasion to give a better tailored response
+✅ Focus on clarifying unclear or missing parameters  
+✅ Do NOT ask unnecessary questions if enough context is present
+
+---
+
+**STRICT OUTPUT FORMAT:**
+```json
 {{
   "core_parameters": {{
     "occasion": null,
     "time": null,
     "location": null,
     "body_type": null,
+    "skin_type": null,
     "budget": null,
-    "gender": null
+    "gender": null,
+    "specifications": null
   }},
   "inferred_parameters": {{
     "weather": null,
@@ -133,33 +174,11 @@ Extract the following parameters and return them in JSON format. Each parameter 
     "fabric": null,
     "trend": null,
     "age": null
-  }}
-}}
-
-Replace null with arrays of relevant values or keep as null if not applicable.
-
-Example for "I need a dress for a wedding tonight":
-{{
-  "core_parameters": {{
-    "occasion": ["wedding"],
-    "time": ["evening"],
-    "location": null,
-    "body_type": null,
-    "budget": null,
-    "gender": ["female"]
   }},
-  "inferred_parameters": {{
-    "weather": null,
-    "formality": ["formal"],
-    "mood": ["elegant"],
-    "color": ["jewel_tones"],
-    "fabric": ["silk"],
-    "trend": ["classic"],
-    "age": null
-  }}
+  "product_categories": [],
+  "follow_up_questions": []
 }}
-
-Now analyze the user input and return ONLY the JSON:"""
+"""
         return prompt
     
     def _call_ai(self, prompt: str) -> str:
@@ -180,7 +199,7 @@ Now analyze the user input and return ONLY the JSON:"""
             response = ai_response.strip()
             
             # Debug: Print the raw response
-            print(f"Raw AI Response: {response[:500]}...")
+      
             
             # Try to find JSON content between braces
             start_idx = response.find('{')
@@ -188,13 +207,13 @@ Now analyze the user input and return ONLY the JSON:"""
             
             if start_idx != -1 and end_idx != 0:
                 json_content = response[start_idx:end_idx]
-                print(f"Extracted JSON: {json_content[:200]}...")
+     
                 
                 try:
                     parameters = json.loads(json_content)
                     
                     # Validate structure
-                    if "core_parameters" in parameters and "inferred_parameters" in parameters:
+                    if "core_parameters" in parameters and "inferred_parameters" in parameters and "product_categories" in parameters:
                         print("✅ Valid JSON structure found")
                         return parameters
                     else:
@@ -247,6 +266,8 @@ Now analyze the user input and return ONLY the JSON:"""
             "core_parameters": {param: None for param in self.core_parameters},
             "inferred_parameters": {param: None for param in self.inferred_parameters}
         }
+    
+    
     
     def get_missing_core_parameters(self, parameters: Dict[str, Any]) -> List[str]:
         """Get list of missing core parameters that need follow-up questions."""
@@ -312,27 +333,76 @@ Now analyze the user input and return ONLY the JSON:"""
         core_params = extracted_parameters.get("core_parameters", {})
         occasion = self._get_param_value(core_params.get("occasion"))
         
+        #prompt = f"""
+        # You are a super-stylish friend who is on top of all the latest Gen Z fashion trends, aesthetics, and terminology 
+        
+        # An India friend has made the following request: "{user_query}"
+        # Things said by user in the conversation: {conversation['user']}
+        # Things said by you in the conversation: {conversation['bot']}
+        # The known occasion is: {occasion}
+        # The recs given to your friend: {recs}
+
+        # YOUR TASK:
+        # Give them a cool, insightful tip in a friendly, conversational tone. Your advice should follow this structure:
+        # 1. Suggest a current, Gen Z recommendation that fits the occasion and the recs given to your friend
+        # 2. Maintain conversation and answer any followup questions
+        
+        # GUIDELINES:
+        # - Use current fashion terms correctly 
+        # - Keep the tone like a helpful, in-the-know friend.
+        # - Keep the responses tailored for indian context
+        # - Avoid sounding like a corporate brand trying to be "hip."
+        # - Avoid responses longer than 3 lines if possible.
+        # - When asking for gender use men or women rather than guy or girl
+
+        # Now, generate the insightful statement for your friend's request.
+        # """
         prompt = f"""
-        You are a super-stylish friend who is on top of all the latest Gen Z fashion trends, aesthetics, and terminology 
-        
-        An India friend has made the following request: "{user_query}"
-        Your previous conversation: "{conversation}"
-        The known occasion is: {occasion}
-        The recs given to your friend: {recs}
+        Your Role: You are an expert fashion stylist AI assisting users in curating stylish, occasion-appropriate outfit combinations. Your primary goal is to generate intelligent pairing suggestions based on user input, and present them with the warmth and tone of a human personal shopper.
+INPUT FORMAT:
+USER QUERY : {user_query}
+Things said by user in the conversation: {conversation['user']}
+Things said by you in the conversation: {conversation['bot']}
+RECENT RECS: {recs}
+YOUR TASK:
+1. Understand the Query
+   Identify:
+   - The core item (main product mentioned)
+   - Its style or aesthetic
+   - Any relevant occasion, season, or setting implied
+2. Generate Natural-Language Summary (for dialogue layer)
+   Using the recent recs and context, write a short paragraph (~2–4 sentences) in the tone of a friendly, stylish personal shopper. Your tone should be:
+   - provide a context insight
+   - Confident but warm
+   - Descriptive (help the user visualize the look)
+   - Adaptive to occasion, mood, or setting
+  
+3. **Follow-Up Questions (if needed)**
+   - If the user query is vague or includes an actual question (e.g. "what should I wear…", "what's best for…"), include 1–2 short clarifying questions.
+   - These should gently guide the user to provide missing info (e.g. setting, gender, formality, or weather)
 
-        YOUR TASK:
-        Give them a cool, insightful tip in a friendly, conversational tone. Your advice should follow this structure:
-        1. Suggest a current, Gen Z recommendation that fits the occasion and the recs given to your friend
-        2. Maintain conversation and answer any followup questions
-        
-        GUIDELINES:
-        - Use current fashion terms correctly 
-        - Keep the tone like a helpful, in-the-know friend.
-        - Keep the responses tailored for indian context
-        - Avoid sounding like a corporate brand trying to be "hip."
 
-        Now, generate the insightful statement for your friend's request.
+4. **Important Guidelines**
+   - ❌ DO NOT mention or recommend brands, designers, or products that are **outside our catalog**
+   - ✅ DO suggest styling ideas in a general but realistic way based on the provided information
+
+OUTPUT STRUCTURE:
+- natural-sounding paragraph
+EXAMPLES:
+Query: "What should I wear with a floral shirt for a brunch?"
+"Floral shirts are perfect for brunch - they hit that sweet spot between polished and playful! The key is balancing the pattern with clean, simple pieces. Think neutral bottoms like beige chinos or white jeans, and comfortable shoes that still look intentional.
+
+Are we styling this for men or women? And do you usually prefer a more put-together brunch look or lean casual and effortless?"
+
+Query: "Ideas to go with pastel shorts for a picnic"
+"Pastel shorts for a picnic - love that! The trick is keeping everything light and breezy while looking intentionally styled. You'll want tops that complement without competing, and comfortable shoes that can handle grass and casual vibes.
+
+Is this for men's or women's styling? And are you more of a 'cute and coordinated' person or do you prefer that 'effortlessly cool' aesthetic?"
+
+Output:
+
         """
+        
         try:
             return self._call_ai(prompt).strip()
         except Exception as e:

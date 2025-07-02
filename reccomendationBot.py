@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Any, Tuple
+from typing import Dict, List, Any, Tuple
 from dataService import ProductDataService 
 from openai import OpenAI
 import os
@@ -50,73 +50,98 @@ class RecommendationService:
             all_products.extend(products)
         return all_products
 
-    def convert_to_searchable_tags(self, user_query, conversation_history, all_input_tags) -> Tuple[List[str], List[str], str]:
-        """Convert input tags to searchable product catalog tags."""
-        if not all_input_tags:
-            return [], [], "Clothing"
-        
-        prompt = f"""
-You are a product tagging engine for an AI fashion assistant.
+    def get_complements(self, tags, user_query ):
+        all_products = self.get_all_products_flat()
 
-You will be given structured user parameters extracted from a conversation. Your job is to generate **searchable product tags** from these parameters to help match products from our fashion catalog.
+        complements = []
+        
+        for prod in all_products:
+            #print(prod.get('title'))
+            #print(len(set(prod.get('tags')) & set(tags)))
+            if len(set(prod.get('tags')) & set(tags)) > 3:
+                complements.append({
+                    'product_id': prod.get('product_id'),
+                    'title': prod.get('title'),
+                    'brand_name': prod.get('brand_name'),
+                    'price': prod.get('price'),
+                    #'average_rating': prod.get('average_rating'),
+                    'tags': set(prod.get('tags')) & set(tags),
+                })
+        complements.sort(key=lambda x: len(x['tags']), reverse=True)
+       
+        prod_ids = self.checkRecs(f"what will go well with {user_query}", "", complements[:20])
+        filtered_complements = [comp for comp in complements if comp['product_id'] in prod_ids]
+
+        return filtered_complements
+
+    def convert_to_searchable_tags(self, user_query, conversation_history, all_input_tags, allowed_categories) -> Tuple[List[str], List[str], str]:
+        prompt = f"""
+You are a fashion and beauty tagging engine for a personal shopping AI assistant.
+
+You will receive a **set of tags** describing a user’s fashion or beauty needs. These tags should be interpreted **together as a single context** (not individually) to generate a cohesive recommendation profile. You will then generate **searchable tags** for relevant products, based only on the specified product categories.
 
 ---
 
-**PARAMETERS:**
+**INPUT TAGS:**  
 {all_input_tags}
+
+**ALLOWED CATEGORIES (limit results to only these):**  
+{allowed_categories}  
+(e.g., ["Accessories", "Clothing"], or ["Makeup"], or ["Footwear", "Fragrance"])
 
 ---
 
 **YOUR TASK:**
 
-1. Convert the parameter values into realistic, normalized e-commerce tags:
-   - All lowercase
-   - Use hyphens for multi-word tags (e.g., "office wear" → "office-wear")
+1. **Contextual Understanding:**  
+   Interpret the full tag set collectively to understand the scenario (e.g., occasion, gender, mood, time of day, color theme, etc.). Do not treat tags individually — your job is to infer what would match *holistically* with the look, mood, and context.
 
-2. **Infer appropriate product types** based on occasion, gender, weather, formality, time of day, and age.
-   - Example: For a party at night for men, suggest items like "shirt", "trousers", "loafers"
-   - Example: For a beach vacation in hot weather, suggest items like "shorts", "t-shirts", "sandals"
+2. **Generate Complementary Tags (Category-Constrained):**  
+   - Create a practical and cohesive set of product tags for items that belong **only to the specified categories**.
+   - Do not include items or tags from categories that are not listed in `ALLOWED CATEGORIES`.  
+     *Example:* If only "Accessories" is allowed, do not suggest clothing, footwear, or makeup tags.
 
-3. Classify tags into two groups:
-   - **IMPORTANT**:
-     - Product types (e.g., t-shirt, dress, jeans, loafers)
-     - Gender (e.g., mens, womens, unisex)
-     - Occasion or context-specific tags (e.g., gym-wear, office-wear, wedding-guest)
-     - Formality level (e.g., casual, formal, smart-casual)
+3. **Normalize All Tags**  
+   - Use lowercase only  
+   - Use hyphens for multi-word tags (e.g., “beard oil” → `beard-oil`)
+   - Avoid repeating any of the input tags unless transformed or categorized
 
-   - **REGULAR**:
-     - Fabrics, styles, comfort (e.g., cotton, flowy, wrinkle-free)
-     - Colors and tones (e.g., beige, jewel-tones, neutral)
-     - Moods, aesthetics, trends (e.g., edgy, vintage, chic, y2k)
-     - Weather-related attributes (e.g., warm, breathable, rain-friendly)
-     - Body-fit attributes (e.g., petite, plus-size, tall)
-     - Budget implications (e.g., premium, budget-friendly)
+4. **Classify Tags into Two Groups**
 
-4. Group the tags under logical high-level categories such as:
-   - Clothing
-   - Footwear
-   - Accessories
-   - Fabric
-   - Color
-   - Style
-   - Fit
-   - Occasion
+   
+   IMPORTANT:
+   - Product types (e.g., watch, cufflinks, bracelet, belt, sunglasses, eyeshadow, lipstick, shampoo, loafers, heels, shirt, bag)
+   - Gender (e.g., mens, womens, unisex)
+   - Occasion-specific or use-case tags (e.g., gym-wear, date-night, party-look, office-wear)
+   - Formality levels (e.g., casual, formal, smart-casual)
+
+   These are essential for filtering products and should always be included in this section if applicable.
+
+   REGULAR:
+   - Materials, finishes, or styles (e.g., cotton, silk, matte, polished, breathable)
+   - Colors and tones (e.g., rose-gold, blush-pink, jewel-tones, dark)
+   - Aesthetic tags and trends (e.g., elegant, classic, vintage, chic, minimal)
+   - Texture/formula/skincare (e.g., creamy, glowy, water-resistant, oily-skin)
+   - Budget/value-related (e.g., luxury, budget-friendly)
 
 ---
 
-**OUTPUT FORMAT (STRICT):**
+KEY INSTRUCTIONS:
+- Use the entire tag list as a unified profile
+- Return tags only from the allowed categories
+- Do not suggest unrelated product types or categories
+- The goal is to generate powerful, searchable tags for recommendation systems
+- Include at least 10–15 tags total, split logically across both sections.
+
+---
+
+OUTPUT FORMAT (STRICT):
 
 IMPORTANT:
-- CategoryName: tag1, tag2
-- CategoryName: tag1
+- product-type1, product-type2, gender-tag, formality-tag, occasion-tag, etc.
 
 REGULAR:
-- CategoryName: tag1, tag2, tag3
-- CategoryName: tag1, tag2
-
----
-
-Now, using the parameters, generate the most accurate and practical tags possible to guide product search. Remember to include inferred product types based on the full context.
+- supporting-style1, color1, aesthetic1, material1, etc.
 """
 
 
@@ -150,29 +175,11 @@ Now, using the parameters, generate the most accurate and practical tags possibl
                 # Parse line like "- CategoryName: tag1, tag2, tag3"
                 category_part = line[2:]  # Remove '- '
                 
-                if ':' in category_part:
-                    # Split by first colon to get category and tags
-                    category_name, tags_str = category_part.split(':', 1)
-                    category_name = category_name.strip()
-                    
-                    # Set the main category (use the first one we see)
-                    if category == "Clothing" and category_name in self.categories:
-                        category = category_name
-                    
-                    # Extract tags
-                    tags = [tag.strip() for tag in tags_str.split(',') if tag.strip()]
-                    
-                    if current_section == 'important':
-                        important_tags.extend(tags)
-                    elif current_section == 'regular':
-                        regular_tags.extend(tags)
-                else:
-                    # Handle lines that might just be tags without category
-                    tags = [tag.strip() for tag in category_part.split(',') if tag.strip()]
-                    if current_section == 'important':
-                        important_tags.extend(tags)
-                    elif current_section == 'regular':
-                        regular_tags.extend(tags)
+                tags = [tag.strip() for tag in category_part.split(',') if tag.strip()]
+                if current_section == 'important':
+                    important_tags.extend(tags)
+                elif current_section == 'regular':
+                    regular_tags.extend(tags)
         
         # Remove duplicates while preserving order
         important_tags = list(dict.fromkeys(important_tags))[:8]
@@ -182,7 +189,7 @@ Now, using the parameters, generate the most accurate and practical tags possibl
         print(f"Parsed regular tags: {regular_tags}")
 
         
-        return important_tags, regular_tags, None
+        return important_tags, regular_tags
     def _fallback_tags(self, input_tags) -> Tuple[List[str], List[str], str]:
         """Generate fallback tags if AI fails"""
         tag_mapping = {
@@ -303,57 +310,60 @@ NO_MATCHES
             print(f"AI API error: {e}")
             return ""
 
-    def get_recommendations(self, user_query: str, tags, gender = None, category_name=None, 
-                          conversation_history: str = "", top_n: int = 7) -> List[Dict[str, Any]]:
+
+
+    def get_recommendations(self, user_query: str, tags, gender = None, categories=None, 
+                          conversation_history: str = "", top_n: int = 3) -> List[Dict[str, Any]]:
         """Get product recommendations based on tags."""
         
-        important_tags, regular_tags, category_name = self.convert_to_searchable_tags(user_query, conversation_history, tags)
-        
-        print(important_tags, regular_tags, category_name)
+        print("tags", tags)
+        important_tags, regular_tags = self.convert_to_searchable_tags(user_query, conversation_history, tags, categories)
+        final_matches = []
+        candidate_products = []
         # Get candidate products
-        if category_name and category_name in self.categories:
-            candidate_products = self.get_products_by_category(category_name)
-        else:
-            candidate_products = self.get_all_products_flat()
+        print("categories are: ", categories)
+        for category in categories:
+            candidate_products = self.get_products_by_category(category)
+      
         
         # Score and match products
-        product_matches = []
-        print("gender is " + gender[0])
-        for product in candidate_products:
-            product_tags = product.get('tags', [])
+            product_matches = []
+    
+            for product in candidate_products:
+                product_tags = product.get('tags', [])
+
+                important_matches = sum(1 for tag in important_tags if tag in product_tags)
+                regular_matches = sum(1 for tag in regular_tags if tag in product_tags)
+                total_score = (important_matches * 5) + regular_matches
+                if gender and gender[0] not in product_tags:
+                    continue
+                if important_matches > 0 and regular_matches > 1:  
+                    print(product.get('title'))
+                    matched_important = [tag for tag in important_tags if tag in product_tags]
+                    matched_regular = [tag for tag in regular_tags if tag in product_tags]
+                    product_matches.append({
+                        'product_id': product.get('product_id'),
+                        'title': product.get('title'),
+                        'brand_name': product.get('brand_name'),
+                        'price': product.get('price'),
+                        'average_rating': product.get('average_rating'),
+                        'total_score': total_score,
+                        'matched_important_tags': matched_important,
+                        'matched_regular_tags': matched_regular,
+                        'important_matches': important_matches,
+                        'regular_matches': regular_matches,
+                        'banned_matches': 0,
+                        'matched_banned_tags': [],
+                        'weighted_score': total_score
+                    })
             
-            important_matches = sum(1 for tag in important_tags if tag in product_tags)
-            regular_matches = sum(1 for tag in regular_tags if tag in product_tags)
-            total_score = (important_matches * 5) + regular_matches
-            if gender and gender[0] not in product_tags:
-                continue
-            if important_matches > 0 and regular_matches >= 1:
-                print(product.get('title'))
-                matched_important = [tag for tag in important_tags if tag in product_tags]
-                matched_regular = [tag for tag in regular_tags if tag in product_tags]
-                
-                product_matches.append({
-                    'product_id': product.get('product_id'),
-                    'title': product.get('title'),
-                    'brand_name': product.get('brand_name'),
-                    'price': product.get('price'),
-                    'average_rating': product.get('average_rating'),
-                    'total_score': total_score,
-                    'matched_important_tags': matched_important,
-                    'matched_regular_tags': matched_regular,
-                    'important_matches': important_matches,
-                    'regular_matches': regular_matches,
-                    'banned_matches': 0,
-                    'matched_banned_tags': [],
-                    'weighted_score': total_score
-                })
+            # Sort by score and validate
+            product_matches.sort(key=lambda x: (x['total_score'], x.get('average_rating', 0)), reverse=True)
+
+            if product_matches:
         
-        # Sort by score and validate
-        product_matches.sort(key=lambda x: (x['total_score'], x.get('average_rating', 0)), reverse=True)
-        print("product matches found: " + str(len(product_matches)))
-        if product_matches:
-            validated_ids = self.checkRecs(user_query, conversation_history, product_matches[:20])
-            final_matches = [p for p in product_matches if p['product_id'] in validated_ids]
-            return final_matches[:top_n]
-        
-        return []
+                validated_ids = self.checkRecs(user_query, conversation_history, product_matches[:20])
+                final_match = [p for p in product_matches if p['product_id'] in validated_ids]
+                final_matches.extend(final_match[:top_n])
+            
+        return final_matches
