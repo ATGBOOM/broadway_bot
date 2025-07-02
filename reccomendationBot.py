@@ -42,6 +42,17 @@ class RecommendationService:
     def get_products_by_category(self, category: str) -> List[Dict[str, Any]]:
         """Get all products from a specific category."""
         return self.all_products.get(category, [])
+
+    def get_products_by_subcategory(self, subcategories):
+        products_by_subcategory = {}
+        print((self.product_service.categories.items()).get('Swimwear'))
+        for category, subcategory in self.product_service.categories.items():
+            #print(subcategory)
+            if subcategory in subcategories:
+                print("subcategory", subcategory)
+                products_by_subcategory[subcategory] = subcategory.items()
+                    
+        return products_by_subcategory
     
     def get_all_products_flat(self) -> List[Dict[str, Any]]:
         """Get all products as a flat list."""
@@ -50,29 +61,41 @@ class RecommendationService:
             all_products.extend(products)
         return all_products
 
-    def get_complements(self, tags, user_query ):
-        all_products = self.get_all_products_flat()
-
-        complements = []
+    def get_complements(self, tags, sub_categories, user_query ):
+        all_products = self.product_service.get_subcategory_data(sub_categories)
         
-        for prod in all_products:
-            #print(prod.get('title'))
-            #print(len(set(prod.get('tags')) & set(tags)))
-            if len(set(prod.get('tags')) & set(tags)) > 3:
-                complements.append({
-                    'product_id': prod.get('product_id'),
-                    'title': prod.get('title'),
-                    'brand_name': prod.get('brand_name'),
-                    'price': prod.get('price'),
-                    #'average_rating': prod.get('average_rating'),
-                    'tags': set(prod.get('tags')) & set(tags),
-                })
-        complements.sort(key=lambda x: len(x['tags']), reverse=True)
-       
-        prod_ids = self.checkRecs(f"what will go well with {user_query}", "", complements[:20])
-        filtered_complements = [comp for comp in complements if comp['product_id'] in prod_ids]
+        
+        return_prods = []
 
-        return filtered_complements
+        for subcat in sub_categories:
+            
+            if subcat not in all_products:
+                print(subcat)
+                continue
+            complements = []
+            prods = all_products[subcat]
+            
+            for prod in prods:
+                #print(prod.get('title'))
+                #print(len(set(prod.get('tags')) & set(tags)))
+                
+                if len(set(prod.get('tags')) & set(tags)) > 2:
+                    print(prod.get('title'))
+                    complements.append({
+                        'product_id': prod.get('product_id'),
+                        'title': prod.get('title'),
+                        'brand_name': prod.get('brand_name'),
+                        'price': prod.get('price'),
+                        #'average_rating': prod.get('average_rating'),
+                        'tags': set(prod.get('tags')) & set(tags),
+                    })
+            complements.sort(key=lambda x: len(x['tags']), reverse=True)
+        
+            prod_ids = self.checkRecs(f"what will go well with {user_query}", "", complements[:5])
+            filtered_complements = [comp for comp in complements if comp['product_id'] in prod_ids][:2]
+
+            return_prods.extend(filtered_complements)
+        return return_prods
 
     def convert_to_searchable_tags(self, user_query, conversation_history, all_input_tags, allowed_categories) -> Tuple[List[str], List[str], str]:
         prompt = f"""
