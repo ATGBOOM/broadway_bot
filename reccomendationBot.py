@@ -61,26 +61,21 @@ class RecommendationService:
             all_products.extend(products)
         return all_products
 
-    def get_complements(self, tags, sub_categories, user_query ):
+    def get_complements(self, tags, sub_categories, user_query, aitext ):
+        print(tags)
         all_products = self.product_service.get_subcategory_data(sub_categories)
-        
-        
         return_prods = []
 
         for subcat in sub_categories:
-            
-            if subcat not in all_products:
-                print(subcat)
+            if subcat.capitalize() not in all_products:
                 continue
+    
             complements = []
             prods = all_products[subcat]
             
             for prod in prods:
-                #print(prod.get('title'))
-                #print(len(set(prod.get('tags')) & set(tags)))
-                
-                if len(set(prod.get('tags')) & set(tags)) > 2:
-                    print(prod.get('title'))
+   
+                if len(set(prod.get('tags')) & set(tags)) > 1:
                     complements.append({
                         'product_id': prod.get('product_id'),
                         'title': prod.get('title'),
@@ -91,13 +86,14 @@ class RecommendationService:
                     })
             complements.sort(key=lambda x: len(x['tags']), reverse=True)
         
-            prod_ids = self.checkRecs(f"what will go well with {user_query}", "", complements[:5])
-            filtered_complements = [comp for comp in complements if comp['product_id'] in prod_ids][:2]
+            # prod_ids = self.checkRecs(f"{aitext} {user_query}", "", complements[:5])
+            # filtered_complements = [comp for comp in complements if comp['product_id'] in prod_ids][:5]
 
-            return_prods.extend(filtered_complements)
+            return_prods.extend(complements[:5])
         return return_prods
 
     def convert_to_searchable_tags(self, user_query, conversation_history, all_input_tags, allowed_categories) -> Tuple[List[str], List[str], str]:
+        
         prompt = f"""
 You are a fashion and beauty tagging engine for a personal shopping AI assistant.
 
@@ -128,6 +124,7 @@ You will receive a **set of tags** describing a user’s fashion or beauty needs
    - Use lowercase only  
    - Use hyphens for multi-word tags (e.g., “beard oil” → `beard-oil`)
    - Avoid repeating any of the input tags unless transformed or categorized
+   - Generate single word tags rather than multiword
 
 4. **Classify Tags into Two Groups**
 
@@ -135,14 +132,14 @@ You will receive a **set of tags** describing a user’s fashion or beauty needs
    IMPORTANT:
    - Product types (e.g., watch, cufflinks, bracelet, belt, sunglasses, eyeshadow, lipstick, shampoo, loafers, heels, shirt, bag)
    - Gender (e.g., mens, womens, unisex)
-   - Occasion-specific or use-case tags (e.g., gym-wear, date-night, party-look, office-wear)
-   - Formality levels (e.g., casual, formal, smart-casual)
+   - Occasion-specific or use-case tags (e.g., gym, date-night, party, office-wear)
+   - Formality levels (e.g., casual, formal, smart-casual, comfortable)
 
    These are essential for filtering products and should always be included in this section if applicable.
 
    REGULAR:
    - Materials, finishes, or styles (e.g., cotton, silk, matte, polished, breathable)
-   - Colors and tones (e.g., rose-gold, blush-pink, jewel-tones, dark)
+   - Colors and tones (e.g., rose-gold, pink, jewel-tones, dark, blue, green)
    - Aesthetic tags and trends (e.g., elegant, classic, vintage, chic, minimal)
    - Texture/formula/skincare (e.g., creamy, glowy, water-resistant, oily-skin)
    - Budget/value-related (e.g., luxury, budget-friendly)
@@ -158,19 +155,20 @@ KEY INSTRUCTIONS:
 
 ---
 
-OUTPUT FORMAT (STRICT):
+OUTPUT FORMAT (STRICT) DO NOT MAKE IT BOLD:
 
 IMPORTANT:
 - product-type1, product-type2, gender-tag, formality-tag, occasion-tag, etc.
 
 REGULAR:
 - supporting-style1, color1, aesthetic1, material1, etc.
+
+RESPOND EXACTLY IN THE FORMAT ABOVE
 """
 
 
         try:
             response = self._call_ai(prompt)
-            print(f"Tag conversion response: {response}")
             return self._parse_searchable_tags_response(response)
         except Exception as e:
             print(f"Error converting tags: {e}")
@@ -180,8 +178,6 @@ REGULAR:
         """Parse AI response for searchable tags"""
         important_tags, regular_tags, category = [], [], "Clothing"
         current_section = None
-        
-        print(f"Parsing AI response: {ai_response}")
         
         for line in ai_response.strip().split('\n'):
             line = line.strip()
@@ -213,6 +209,7 @@ REGULAR:
 
         
         return important_tags, regular_tags
+
     def _fallback_tags(self, input_tags) -> Tuple[List[str], List[str], str]:
         """Generate fallback tags if AI fails"""
         tag_mapping = {
@@ -332,8 +329,6 @@ NO_MATCHES
         except Exception as e:
             print(f"AI API error: {e}")
             return ""
-
-
 
     def get_recommendations(self, user_query: str, tags, gender = None, categories=None, 
                           conversation_history: str = "", top_n: int = 3) -> List[Dict[str, Any]]:

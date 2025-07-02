@@ -129,10 +129,10 @@ SUB CATEGORIES AVAILABLE : {subcategories}
      - **Style/mood descriptors** (e.g., casual, edgy, breezy, modern, chic)
 
 3. Choose 2–5 **subcategories** that should be queried to fetch real products for the user.
-   - Base this on the **intent of the user’s request**.
+     - Base this on the **intent of the user’s request**.
      - If the user asks *"what goes with black jeans"* → include jackets, shoes, tops, accessories, etc.
      - If the user says *"what shoes go with black jeans"* → restrict to only footwear-related subcategories
-   - Use only real fashion subcategories provided
+     - Use only real subcategories provided
 
 ---
 
@@ -166,7 +166,7 @@ SUB CATEGORIES AVAILABLE : {subcategories}
         tags, subcategories = self.getComplementProductTags(user_query)
         print("tags are:", tags)
         
-        return self.reccomendations.get_complements( tags, subcategories, user_query)
+        return self.reccomendations.get_complements( tags, subcategories, user_query, "what will go well with")
 
 
     def ask_ai(self, prompt):

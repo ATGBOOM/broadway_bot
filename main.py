@@ -6,7 +6,8 @@ import os
 from typing import Dict, Any
 from occasionService import OccasionService
 from reccomendationBot import RecommendationService
-from pairingService import PairingService  # Add this import
+from pairingService import PairingService
+from vacationService import VacationService  # Add this import
 
 app = FastAPI(title="Broadway Fashion Bot WebSocket")
 
@@ -22,7 +23,8 @@ else:
 try:
     occasion_service = OccasionService()
     recommendation_service = RecommendationService()
-    pairing_service = PairingService()  # Add pairing service
+    pairing_service = PairingService()
+    vacation_service = VacationService()  # Add vacation service
     print("✅ Services initialized successfully")
 except Exception as e:
     print(f"❌ Error initializing services: {e}")
@@ -34,7 +36,7 @@ class ChatSession:
             'user' : [],
             'bot' : []
         }
-        self.service_mode = None  # 'occasion' or 'pairing'
+        self.service_mode = None  # 'occasion', 'pairing', or 'vacation'
         self.current_parameters = None
         self.current_recommendations = None
 
@@ -53,7 +55,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
     # Send initial service selection message
     await websocket.send_text(json.dumps({
         "type": "bot_message",
-        "message": "👋 Welcome to Broadway Fashion! I'm here to help you find the perfect outfit.\n\nChoose your styling mode:\n1️⃣ Occasion-based styling (weddings, work, parties, etc.)\n2️⃣ Item pairing (find what goes with specific pieces)\n\nJust type 1 or 2 to get started!",
+        "message": "👋 Welcome to Broadway Fashion! I'm here to help you find the perfect outfit.\n\nChoose your styling mode:\n1️⃣ Occasion-based styling (weddings, work, parties, etc.)\n2️⃣ Item pairing (find what goes with specific pieces)\n3️⃣ Vacation styling (destination-based outfit recommendations)\n\nJust type 1, 2, or 3 to get started!",
         "timestamp": asyncio.get_event_loop().time()
     }))
     
@@ -108,10 +110,18 @@ async def process_user_input(websocket: WebSocket, session: ChatSession, user_in
                     "message_type": "mode_selected"
                 }))
                 return
+            elif user_input.strip() == "3":
+                session.service_mode = "vacation"
+                await websocket.send_text(json.dumps({
+                    "type": "bot_message",
+                    "message": "Wonderful! You've selected vacation styling mode. Tell me about your destination - for example: 'planning a trip to Goa', 'going to Thailand', 'visiting Paris', etc.",
+                    "message_type": "mode_selected"
+                }))
+                return
             else:
                 await websocket.send_text(json.dumps({
                     "type": "bot_message",
-                    "message": "Please choose a valid option:\n1️⃣ for occasion-based styling\n2️⃣ for item pairing\n\nJust type 1 or 2!",
+                    "message": "Please choose a valid option:\n1️⃣ for occasion-based styling\n2️⃣ for item pairing\n3️⃣ for vacation styling\n\nJust type 1, 2, or 3!",
                     "message_type": "invalid_selection"
                 }))
                 return
@@ -121,6 +131,8 @@ async def process_user_input(websocket: WebSocket, session: ChatSession, user_in
             await handle_occasion_mode(websocket, session, user_input)
         elif session.service_mode == "pairing":
             await handle_pairing_mode(websocket, session, user_input)
+        elif session.service_mode == "vacation":
+            await handle_vacation_mode(websocket, session, user_input)
         
         # Update conversation history
         if session.conversation_history['user']:
@@ -221,6 +233,64 @@ async def handle_pairing_mode(websocket: WebSocket, session: ChatSession, user_i
             "message": f"Error finding pairings: {str(e)}"
         }))
 
+async def handle_vacation_mode(websocket: WebSocket, session: ChatSession, user_input: str):
+    """Handle vacation styling requests"""
+    try:
+        # Get vacation recommendations from vacation service
+        vacation_recommendations = vacation_service.get_vacation_recommendation(user_input)
+        
+        if "error" in vacation_recommendations:
+            await websocket.send_text(json.dumps({
+                "type": "bot_message",
+                "message": f"I couldn't identify the destination from your query. {vacation_recommendations['suggestion']}",
+                "message_type": "destination_error"
+            }))
+            return
+        
+        # Process each location recommendation
+        for location_data in vacation_recommendations:
+            location_name = location_data['name']
+            dialogue = location_data['dialogue']
+            products = location_data['products']
+            
+            # Send the dialogue message first
+            await websocket.send_text(json.dumps({
+                "type": "bot_message",
+                "message": f"📍 {location_name}\n\n{dialogue}",
+                "message_type": "vacation_location_intro"
+            }))
+            
+            # Then send the product recommendations
+            if products:
+                await websocket.send_text(json.dumps({
+                    "type": "recommendations",
+                    "location_name": location_name,
+                    "recommendations": [
+                        {
+                            "id": i + 1,
+                            "product_id": prod['product_id'],
+                            "title": prod['title'],
+                            "brand_name": prod['brand_name'],
+                            "price": prod.get('price', 'N/A'),
+                            "total_score": prod.get('total_score', 0)
+                        }
+                        for i, prod in enumerate(products[:7])  # Limit to 7 items per location
+                    ]
+                }))
+            
+            # Update conversation history
+            if session.conversation_history['bot']:
+                session.conversation_history['bot'].append(dialogue)
+            else:
+                session.conversation_history['bot'] = [dialogue]
+                
+    except Exception as e:
+        print(f"Error in vacation mode: {e}")
+        await websocket.send_text(json.dumps({
+            "type": "error",
+            "message": f"Error getting vacation recommendations: {str(e)}"
+        }))
+
 async def generate_occasion_recommendations(websocket: WebSocket, session: ChatSession, user_input: str, parameters: Dict[str, Any], confidence_score: float):
     """Generate and send product recommendations for occasion-based styling"""
     
@@ -308,6 +378,7 @@ async def get_chat_interface():
         .recommendations { background: #e8f5e8; border: 1px solid #4caf50; border-radius: 10px; padding: 15px; margin: 10px 0; }
         .recommendation-item { background: white; border-radius: 8px; padding: 12px; margin: 8px 0; border-left: 4px solid #667eea; }
         .pairing-tags { font-size: 11px; color: #666; margin-top: 5px; }
+        .location-header { font-weight: bold; color: #4caf50; margin-bottom: 10px; }
         .chat-input-container { display: flex; padding: 20px; }
         .chat-input { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 25px; }
         .send-button { margin-left: 10px; padding: 12px 24px; background: #667eea; color: white; border: none; border-radius: 25px; cursor: pointer; }
@@ -324,7 +395,7 @@ async def get_chat_interface():
         </div>
         <div class="chat-messages" id="messages"></div>
         <div class="chat-input-container">
-            <input type="text" id="messageInput" class="chat-input" placeholder="Choose 1 or 2, or describe what you're looking for..." onkeypress="handleKeyPress(event)">
+            <input type="text" id="messageInput" class="chat-input" placeholder="Choose 1, 2, or 3, or describe what you're looking for..." onkeypress="handleKeyPress(event)">
             <button class="send-button" onclick="sendMessage()">Send</button>
         </div>
     </div>
@@ -366,7 +437,7 @@ async def get_chat_interface():
                     }, 2000);
                     break;
                 case 'recommendations':
-                    displayRecommendations(data.recommendations);
+                    displayRecommendations(data.recommendations, data.location_name);
                     break;
                 case 'debug_info':
                     if (data.confidence_score !== undefined) {
@@ -388,12 +459,18 @@ async def get_chat_interface():
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
         
-        function displayRecommendations(recommendations) {
+        function displayRecommendations(recommendations, locationName) {
             const messagesDiv = document.getElementById('messages');
             const recDiv = document.createElement('div');
             recDiv.className = 'recommendations';
             
-            let html = '<h4>🛍️ Recommendations:</h4>';
+            let html = '';
+            if (locationName) {
+                html += `<div class="location-header">🛍️ Recommendations for ${locationName}:</div>`;
+            } else {
+                html += '<h4>🛍️ Recommendations:</h4>';
+            }
+            
             recommendations.forEach(rec => {
                 html += `
                     <div class="recommendation-item">
