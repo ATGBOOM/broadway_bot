@@ -138,8 +138,10 @@ async def process_user_input(websocket: WebSocket, session: ChatSession, user_in
         elif session.service_mode == "pairing":
             await handle_pairing_mode(websocket, session, user_input)
         elif session.service_mode == "vacation":
+         
             await handle_vacation_mode(websocket, session, user_input)
         elif session.service_mode == "general":
+            print("this is calling the general service")
             await handle_general_mode(websocket, session, user_input)
         # Update conversation history
      
@@ -176,7 +178,7 @@ async def handle_occasion_mode(websocket: WebSocket, session: ChatSession, user_
         
         await websocket.send_text(json.dumps({
             "type": "bot_message",
-            "message": followup_message,
+            "message": "Could you tell me more about the occasion and whether this is for men or women?",
             "message_type": "followup_question"
         }))
     else:

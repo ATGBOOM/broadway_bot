@@ -333,37 +333,12 @@ If **important information** is missing (especially `gender`), or if you need mo
         """Generates a trendy, Gen Z-focused style tip."""
         core_params = extracted_parameters.get("core_parameters", {})
         occasion = self._get_param_value(core_params.get("occasion"))
-        
-        #prompt = f"""
-        # You are a super-stylish friend who is on top of all the latest Gen Z fashion trends, aesthetics, and terminology 
-        
-        # An India friend has made the following request: "{user_query}"
-        # Things said by user in the conversation: {conversation['user']}
-        # Things said by you in the conversation: {conversation['bot']}
-        # The known occasion is: {occasion}
-        # The recs given to your friend: {recs}
 
-        # YOUR TASK:
-        # Give them a cool, insightful tip in a friendly, conversational tone. Your advice should follow this structure:
-        # 1. Suggest a current, Gen Z recommendation that fits the occasion and the recs given to your friend
-        # 2. Maintain conversation and answer any followup questions
-        
-        # GUIDELINES:
-        # - Use current fashion terms correctly 
-        # - Keep the tone like a helpful, in-the-know friend.
-        # - Keep the responses tailored for indian context
-        # - Avoid sounding like a corporate brand trying to be "hip."
-        # - Avoid responses longer than 3 lines if possible.
-        # - When asking for gender use men or women rather than guy or girl
-
-        # Now, generate the insightful statement for your friend's request.
-        # """
         prompt = f"""
         Your Role: You are an expert fashion stylist AI assisting users in curating stylish, occasion-appropriate outfit combinations. Your primary goal is to generate intelligent pairing suggestions based on user input, and present them with the warmth and tone of a human personal shopper.
 INPUT FORMAT:
 USER QUERY : {user_query}
-Things said by user in the conversation: {conversation['user']}
-Things said by you in the conversation: {conversation['bot']}
+CONTEXT : {conversation}
 RECENT RECS: {recs}
 YOUR TASK:
 1. Understand the Query

@@ -121,7 +121,7 @@ Based on your analysis, choose **ONLY ONE** of the following intents.
 **INTENT DEFINITIONS:**
 
 * **"Vacation"**
-    * **Description:** The user is planning, packing for, or currently on a trip, and their request is for items related to this travel.
+    * **Description:** The user is planning, packing for, or currently on a trip, and their request is for outfits on the trabel. - this should only be called once, otherwise call occasion
     * **Trigger Keywords:** "trip," "traveling to," "packing for," "vacation," "holiday," "going to [destination]," "what to wear in [city/country]."
     * **Example:** User was looking for sunglasses. Current input is "I'll be going to Goa next month, what else should I pack?" -> **Vacation**.
 
