@@ -102,37 +102,60 @@ Summarize and update the context to include only relevant information for the ne
 
     def understandIntent(self, context, previous_intent):
         prompt = f"""
-You are an intelligent assistant responsible for understanding user shopping requests.  
-Your job is to **determine the updated intent of the user**, based on the latest message and the full conversation context.
+        You are a highly advanced AI assistant specializing in Natural Language Understanding for e-commerce. Your primary function is to accurately determine a user's shopping intent by analyzing their latest message in the context of the conversation history.
+
+Your core principle is: **The most recent user message holds the most weight.** The conversation history provides context but does not override a clear, new request.
 
 ---
+### Step 1: Analyze the Inputs
 
-**ALLOWED INTENTS:**  
-Choose ONLY ONE of the following intents that best matches what the user now wants:
-- "Occasion": When the user is shopping for an event (e.g., wedding, party, work, gym)
-- "Pairing": When the user wants suggestions for items that go well with something they already have (e.g., "what shoes with black jeans")
-- "Vacation": When the user is packing or shopping for a trip 
-- "General": When the users intent does not match any of the others and we need to ask them followups to narrow down the intention 
----
-
-**PREVIOUS INTENT:**  
-{previous_intent}
-
-**CONVERSATION CONTEXT:**  
-{context}
+1.  **Current User Input:** This is the user's newest message. What is the explicit request here? Does it contain keywords related to events, travel, or specific products?
+2.  **Conversation Context:** This is the history of the conversation. What was the previous topic? Use this to understand the background, but do not let it overpower the `Current User Input`. For example, if the user was planning a vacation but their *new message* is "I need shoes for a wedding," the intent is now "Occasion," not "Vacation."
 
 ---
+### Step 2: Evaluate Against Defined Intents
 
-**YOUR TASK:**  
-Analyze the conversation holistically and decide whether the user’s intent has changed.  
-Return ONLY the updated intent from the allowed list above.
+Based on your analysis, choose **ONLY ONE** of the following intents.
+
+**INTENT DEFINITIONS:**
+
+* **"Vacation"**
+    * **Description:** The user is planning, packing for, or currently on a trip, and their request is for items related to this travel.
+    * **Trigger Keywords:** "trip," "traveling to," "packing for," "vacation," "holiday," "going to [destination]," "what to wear in [city/country]."
+    * **Example:** User was looking for sunglasses. Current input is "I'll be going to Goa next month, what else should I pack?" -> **Vacation**.
+
+* **"Occasion"**
+    * **Description:** The user needs an outfit or items for a specific event, activity, or function. This is event-driven.
+    * **Trigger Keywords:** "wedding," "party," "interview," "work," "office," "gym," "date night," "formal event," "concert," "festival."
+    * **Example:** User was talking about a trip. Current input is "Thanks! Also, I need a dress for a friend's wedding." -> **Occasion**.
+
+* **"Pairing"**
+    * **Description:** The user has a specific item or product category in mind and wants to find complementary items that match or complete the look. The request is anchored to an existing product.
+    * **Trigger Keywords:** "what goes with," "how to style," "shoes for this dress," "what top for these jeans," "need a bag to match my boots."
+    * **Example:** User was shopping for an occasion. Current input is "I just bought these black jeans, what kind of tops would go well with them?" -> **Pairing**.
+
+* **"General"**
+    * **Description:** The user's request is broad, ambiguous, or doesn't fit any of the other categories. This intent signals that follow-up questions are needed to clarify their goal.
+    * **Trigger Keywords:** "show me some shirts," "looking for shoes," "any new arrivals?," "I'm bored, show me something cool."
+    * **Example:** The conversation is new. Current input is "I want to buy clothes." -> **General**.
 
 ---
+### Step 3: Format the Output
 
-**RESPONSE FORMAT (strict):**  
+Provide your response in a strict JSON format. Do not add any text outside of the JSON structure.
 
-NewIntentName
-"""
+**INPUTS FOR YOUR ANALYSIS:**
+- **Previous Intent:** `{previous_intent}`
+- **Conversation Context:** `{context}`
+- **Current User Input:** `{latest_user_message}`  <-- *You will need to add this variable to your code*
+
+**JSON OUTPUT FORMAT:**
+```json
+{{
+  "reasoning": "A brief, one-sentence explanation of your decision-making process, explicitly mentioning how the current user input drove the choice.",
+  "intent": "The single, most accurate intent from the list."
+}}"""
+
 
         return self._call_ai(prompt)
 
