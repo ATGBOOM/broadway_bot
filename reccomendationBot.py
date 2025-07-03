@@ -62,7 +62,6 @@ class RecommendationService:
         return all_products
 
     def get_complements(self, tags, sub_categories, user_query, aitext ):
-        print(tags)
         all_products = self.product_service.get_subcategory_data(sub_categories)
         return_prods = []
 
@@ -76,6 +75,7 @@ class RecommendationService:
             for prod in prods:
    
                 if len(set(prod.get('tags')) & set(tags)) > 1:
+                  
                     complements.append({
                         'product_id': prod.get('product_id'),
                         'title': prod.get('title'),
@@ -86,7 +86,7 @@ class RecommendationService:
                     })
             complements.sort(key=lambda x: len(x['tags']), reverse=True)
         
-            prod_ids = self.checkRecs(f"{aitext} {user_query}", "", complements[:5])
+            prod_ids = self.checkRecs(f"{aitext} {user_query}", "", complements[:10])
             filtered_complements = [comp for comp in complements if comp['product_id'] in prod_ids][:5]
 
             return_prods.extend(filtered_complements[:4])
@@ -151,7 +151,7 @@ KEY INSTRUCTIONS:
 - Return tags only from the allowed categories
 - Do not suggest unrelated product types or categories
 - The goal is to generate powerful, searchable tags for recommendation systems
-- Include at least 10–15 tags total, split logically across both sections.
+- Include at least 10–15 regular tags and upto 5 important tags, split logically across both sections.
 
 ---
 
@@ -263,6 +263,7 @@ You are a fashion recommendation validator. Your job is to analyze if the recomm
 
 **EVALUATION CRITERIA:**
 - **Product Type Match**: If user asks for "shirts", only recommend actual shirts/tops, not dresses or pants
+- **Location Type Match**: If a specific location is mentioned, validate products that are appropriate for that location
 - **Gender Match**: If user specifies "women's" or "men's", ensure gender appropriateness
 - **Occasion Match**: If user mentions specific occasion (work, party, casual), prioritize those
 - **Style Consistency**: Ensure the style aligns with user's aesthetic preferences
@@ -283,7 +284,7 @@ NO_MATCHES
 
         try:
             response = self._call_ai(prompt)
-
+            
             
             # Clean and parse the response
             response = response.strip()
@@ -331,7 +332,7 @@ NO_MATCHES
             return ""
 
     def get_recommendations(self, user_query: str, tags, gender = None, categories=None, 
-                          conversation_history: str = "", top_n: int = 3) -> List[Dict[str, Any]]:
+                          conversation_history: str = "", top_n: int = 5) -> List[Dict[str, Any]]:
         """Get product recommendations based on tags."""
         
         print("tags", tags)

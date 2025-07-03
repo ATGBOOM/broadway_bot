@@ -1,3 +1,4 @@
+import json
 from openai import OpenAI
 
 class ConversationService:
@@ -154,10 +155,21 @@ Provide your response in a strict JSON format. Do not add any text outside of th
 {{
   "reasoning": "A brief, one-sentence explanation of your decision-making process, explicitly mentioning how the current user input drove the choice.",
   "intent": "The single, most accurate intent from the list."
-}}"""
+}}
 
+"""
 
-        return self._call_ai(prompt)
+        response = self._call_ai(prompt).strip()
+            
+        # Find JSON content
+        start_idx = response.find('{')
+        end_idx = response.rfind('}') + 1
+        
+        if start_idx != -1 and end_idx != 0:
+            json_content = json.loads(response[start_idx:end_idx])
+            print(json_content['reasoning'])
+            return json_content['intent']
+        return 'General'
 
 
     def _call_ai(self, prompt):
