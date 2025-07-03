@@ -55,27 +55,24 @@ class VacationService:
         
         # Step 2: Get popular locations for that destination
         popular_locations = self._get_popular_locations(destination, user_query, bot_input)
+       
+     
+        dialogue = popular_locations.get('dialogue')
+        print(dialogue)
+        tag = self.reccomendations.convert_to_searchable_tags(
+            user_query=user_query, 
+            conversation_history=bot_input, 
+            all_input_tags= popular_locations.get('outfit').get('style_palette'), 
+            allowed_categories= popular_locations.get('outfit').get('categories')
+            )
+        tags = tag[1] + tag[0]
+        print(popular_locations.get('outfit').get('categories'))
+        print(tags)
+        recs = self.reccomendations.get_complements(tags, popular_locations.get('outfit').get('categories'), dialogue, "")
 
-        prods = []
-        locs = popular_locations.get('popular_locations')
-        for location in locs:
-            print(location.get('name'))
-            tag = self.reccomendations.convert_to_searchable_tags(
-                user_query=location.get('name'), 
-                conversation_history=location.get('weather'), 
-                all_input_tags= location.get('outfit').get('style_palette'), 
-                allowed_categories=location.get('outfit').get('categories')
-                )
-            tags = tag[1] + tag[0]
-      
-            recs = self.reccomendations.get_complements(tags, location.get('outfit').get('categories'), f" would this look good in {location.get('name')}", "")
-            dialogue = self.generate_dialogue(location.get('name'), location.get('weather'), recs)
-            prods.append({
-                "name" : location.get('name'),
-                "products" : recs,
-                "dialogue" : dialogue
-            })
-        return prods
+
+            
+        return dialogue, recs
 
 
     def _extract_destination(self, user_query: str) -> Optional[str]:
@@ -171,13 +168,12 @@ USER QUERY: {user_query}
 CONTEXT : {bot_input}
 SUBCATEGORIES: {subcategories_str}
 
+If a specific product is mentioned by the user, get the subcategories for that product only.
 Carefully analyze the destination, considering its culture, climate, and the types of activities available. Then, generate a response exclusively in the following JSON format.
 
-{{
-  "popular_locations": [
+
     {{
-      "name": "Location Name (A brief, evocative description)",
-      "weather": "Concise weather summary for the current season (e.g., 'Hot and humid with afternoon showers')",
+      "dialogue": Write a natural paragraph (not a list). Mention the destination’s atmosphere, 2–3 things to do there,  some outfits in thoe activites, a brief explanation (1-2 sentences) of why this style palette is recommended, connecting it to the location's atmosphere, activities, and climate."End with a follow-up question like: ‘Would you like a specific outfit idea for hiking or evening dinners?’"
       "outfit": {{
         "categories": ["Exact category from the SUBCATEGORIES list", "Another exact category"],
         "style_palette": [
@@ -191,17 +187,16 @@ Carefully analyze the destination, considering its culture, climate, and the typ
             "key_accessory_2",
             "footwear_style"
         ],
-        "style_rationale": "A brief explanation (1-2 sentences) of why this style palette is recommended, connecting it to the location's atmosphere, activities, and climate."
+       
       }}
     }}
-  ]
-}}
+
 
 Guidelines for Your Response:
 
-1.  **Popular Locations:** Provide a JSON array of exactly 3 distinct and must-visit locations. The description for each should be brief and engaging.
-2.  **Categories:** For each location, select 3-5 of the most relevant categories from the provided `SUBCATEGORIES` list. Use the exact wording and capitalization.
-3.  **Style Palette (The Core of the Prompt):** This is your creative signature. Instead of generic tags, create a "style palette" of 9-12 descriptive keywords.
+1.  **Popular Locations:**  The description for each location /activity should be brief and engaging.
+2.  **Categories:** For each location, select 5-7 of the most relevant categories from the provided `SUBCATEGORIES` list. Use the exact wording and capitalization. If a specific product type is given by the user, choose subcategories of that product only.
+3.  **Style Palette (The Core of the Prompt):** This is your creative signature. Instead of generic tags, create a "style palette" of 10-15 descriptive keywords.
     * **Vibe/Aesthetic:** Think in terms of style cores (e.g., 'bohemian chic', 'urban explorer', 'classic elegance', 'minimalist', 'gorpcore').
     * **Fabric/Texture:** Suggest materials that are both stylish and practical for the climate (e.g., 'lightweight linen', 'breathable cotton', 'wrinkle-resistant jersey', 'chunky knit').
     * **Color Scheme:** Recommend a color palette (e.g., 'earthy tones', 'neutral palette', 'vibrant tropicals', 'monochromatic').
@@ -209,30 +204,7 @@ Guidelines for Your Response:
 4.  **Cultural Sensitivity:** Ensure outfit suggestions are respectful of local customs and dress codes, especially for religious or culturally significant sites.
 5.  **Output Format:** You MUST return ONLY the raw JSON object. Do not include any introductory text, explanations, or markdown formatting like `json` before the opening `{{`.
 
-**Example Snippet for a location like "Santorini, Greece":**
-
-```json
-{{
-    "name": "Oia Village (Iconic blue-domed churches and sunset views)",
-    "weather": "Warm and sunny with a gentle sea breeze",
-    "outfit": {{
-        "categories": ["Dresses", "Tops", "Sandals", "Sunglasses"],
-        "style_palette": [
-            "ethereal", 
-            "aegean chic", 
-            "resort wear", 
-            "flowy silhouettes", 
-            "breathable cotton", 
-            "lightweight linen", 
-            "crisp whites", 
-            "ocean blues", 
-            "gold jewelry", 
-            "strappy leather sandals", 
-            "woven tote bag"
-        ],
-        "style_rationale": "The style reflects Santorini's iconic colors and relaxed, elegant vibe. Lightweight fabrics are essential for comfort in the sun, while flowy silhouettes create stunning photos against the dramatic caldera backdrop."
-    }}
-}}"""
+"""
 
         try:
             response = self._call_ai(prompt)
@@ -333,9 +305,8 @@ def main():
         print("-" * 40)
         
      
-        recommendations = vacation_service.get_vacation_recommendation(query)
-        for rec in recommendations:
-            print(rec['dialogue'])
+        recommendations = vacation_service.get_vacation_recommendation(query, "")
+     
         
         
 

@@ -253,53 +253,31 @@ async def handle_vacation_mode(websocket: WebSocket, session: ChatSession, user_
     """Handle vacation styling requests"""
     try:
         # Get vacation recommendations from vacation service
-        vacation_recommendations = vacation_service.get_vacation_recommendation(user_input, session.conversation_history)
-        
-        if "error" in vacation_recommendations:
-            await websocket.send_text(json.dumps({
+        dialogue, products = vacation_service.get_vacation_recommendation(user_input, session.conversation_history)
+
+        await websocket.send_text(json.dumps({
                 "type": "bot_message",
-                "message": f"I couldn't identify the destination from your query. {vacation_recommendations['suggestion']}",
-                "message_type": "destination_error"
-            }))
-            return
-        locs = []
-        prods = []
-        # Process each location recommendation
-        for location_data in vacation_recommendations:
-            location_name = location_data['name']
-            dialogue = location_data['dialogue']
-            products = location_data['products']
-            locs.append(location_name)
-            prods.append(products)
-            # Send the dialogue message first
-            await websocket.send_text(json.dumps({
-                "type": "bot_message",
-                "message": f"📍 {location_name}\n\n{dialogue}",
+                "message": dialogue,
                 "message_type": "vacation_location_intro"
             }))
-            prods.append(products)
-            # Then send the product recommendations
-            if products:
-                
-                await websocket.send_text(json.dumps({
-                    "type": "recommendations",
-                    "location_name": location_name,
-                    "recommendations": [
-                        {
-                            "id": i + 1,
-                            "product_id": prod['product_id'],
-                            "title": prod['title'],
-                            "brand_name": prod['brand_name'],
-                            "price": prod.get('price', 'N/A'),
-                            "total_score": prod.get('total_score', 0)
-                        }
-                        for i, prod in enumerate(products[:5])  # Limit to 7 items per location
-                    ]
-                }))
-            session.conv_serivce.endTurn(location_name, products)
+
+        await websocket.send_text(json.dumps({
+                "type": "recommendations",
+                "recommendations": [
+                    {
+                        "id": i + 1,
+                        "product_id": prod['product_id'],
+                        "title": prod['title'],
+                        "brand_name": prod['brand_name'],
+                        "price": prod.get('price', 'N/A'),
+                        "total_score": prod.get('total_score', 0)
+                    }
+                    for i, prod in enumerate(products[:7])  # Fixed: using 'prod' consistently
+                ]
+            }))
+    
+        session.conv_serivce.endTurn(dialogue, products)
             
-           
-                
     except Exception as e:
         print(f"Error in vacation mode: {e}")
         await websocket.send_text(json.dumps({

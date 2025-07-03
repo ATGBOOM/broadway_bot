@@ -64,18 +64,18 @@ class RecommendationService:
     def get_complements(self, tags, sub_categories, user_query, aitext ):
         all_products = self.product_service.get_subcategory_data(sub_categories)
         return_prods = []
-
+        
         for subcat in sub_categories:
-            if subcat.capitalize() not in all_products:
-                continue
+            # if subcat.capitalize() not in all_products:
+            #     continue
     
             complements = []
             prods = all_products[subcat]
             
             for prod in prods:
-   
+         
                 if len(set(prod.get('tags')) & set(tags)) > 1:
-                  
+           
                     complements.append({
                         'product_id': prod.get('product_id'),
                         'title': prod.get('title'),
@@ -86,7 +86,7 @@ class RecommendationService:
                     })
             complements.sort(key=lambda x: len(x['tags']), reverse=True)
         
-            prod_ids = self.checkRecs(f"{aitext} {user_query}", "", complements[:10])
+            prod_ids = self.checkRecs(f"{aitext} {user_query}", "", complements[:20])
             filtered_complements = [comp for comp in complements if comp['product_id'] in prod_ids][:5]
 
             return_prods.extend(filtered_complements[:4])
@@ -134,6 +134,7 @@ You will receive a **set of tags** describing a user’s fashion or beauty needs
    - Gender (e.g., mens, womens, unisex)
    - Occasion-specific or use-case tags (e.g., gym, date-night, party, office-wear)
    - Formality levels (e.g., casual, formal, smart-casual, comfortable)
+   - Generate 5-10 of these
 
    These are essential for filtering products and should always be included in this section if applicable.
 
@@ -143,7 +144,7 @@ You will receive a **set of tags** describing a user’s fashion or beauty needs
    - Aesthetic tags and trends (e.g., elegant, classic, vintage, chic, minimal)
    - Texture/formula/skincare (e.g., creamy, glowy, water-resistant, oily-skin)
    - Budget/value-related (e.g., luxury, budget-friendly)
-
+   - Generate 12-15 of these
 ---
 
 KEY INSTRUCTIONS:
@@ -151,7 +152,7 @@ KEY INSTRUCTIONS:
 - Return tags only from the allowed categories
 - Do not suggest unrelated product types or categories
 - The goal is to generate powerful, searchable tags for recommendation systems
-- Include at least 10–15 regular tags and upto 5 important tags, split logically across both sections.
+
 
 ---
 
@@ -230,7 +231,6 @@ RESPOND EXACTLY IN THE FORMAT ABOVE
         return list(set(important_tags))[:8], [], "Clothing"
 
     def checkRecs(self, user_query, conversation_history, products) -> List[str]:
-  
         # Format products for the prompt in a cleaner way
         formatted_products = []
         for i, product in enumerate(products, 1):  # Limit to top 10 for better processing
