@@ -20,9 +20,9 @@ class OccasionService:
         ]
 
     # Rest of your methods remain the same...
-    def extract_parameters(self, user_input: str, parameters) -> Dict[str, Any]:
+    def extract_parameters(self, user_input: str, parameters, bot_input) -> Dict[str, Any]:
         """Extract parameters from user input using AI."""
-        prompt = self._create_extraction_prompt(user_input, parameters)
+        prompt = self._create_extraction_prompt(user_input, parameters, bot_input)
         
         try:
             response = self._call_ai(prompt)
@@ -87,7 +87,7 @@ class OccasionService:
             }
         }
     
-    def _create_extraction_prompt(self, user_input: str, parameters) -> str:
+    def _create_extraction_prompt(self, user_input: str, parameters, bot_input) -> str:
         """Create the prompt for AI parameter extraction."""
 
         
@@ -101,6 +101,7 @@ You are an expert fashion and beauty stylist and personal shopper AI. Your task 
 **PREVIOUS PARAMETERS:**  
 These parameters were extracted from earlier queries or conversation:  
 {parameters}
+{bot_input}
 
 ---
 

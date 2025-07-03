@@ -41,7 +41,7 @@ class VacationService:
             "sri_lanka": ["Kandy Temple", "Ella Tea Country", "Galle Fort"]
         }
 
-    def get_vacation_recommendation(self, user_query: str) -> Dict[str, Any]:
+    def get_vacation_recommendation(self, user_query, bot_input) -> Dict[str, Any]:
         """Main entry point - gets popular locations and outfit recommendations for a destination."""
         
         # Step 1: Extract destination from user query
@@ -54,7 +54,7 @@ class VacationService:
             }
         
         # Step 2: Get popular locations for that destination
-        popular_locations = self._get_popular_locations(destination, user_query)
+        popular_locations = self._get_popular_locations(destination, user_query, bot_input)
 
         prods = []
         locs = popular_locations.get('popular_locations')
@@ -68,7 +68,7 @@ class VacationService:
                 )
             tags = tag[1] + tag[0]
       
-            recs = self.reccomendations.get_complements(tags, location.get('outfit').get('categories'), f" outfits for {location.get('name')}", "")
+            recs = self.reccomendations.get_complements(tags, location.get('outfit').get('categories'), f" would this look good in {location.get('name')}", "")
             dialogue = self.generate_dialogue(location.get('name'), location.get('weather'), recs)
             prods.append({
                 "name" : location.get('name'),
@@ -156,7 +156,7 @@ DESTINATION:
                 
         return None
 
-    def _get_popular_locations(self, destination: str, user_query) -> List[str]:
+    def _get_popular_locations(self, destination: str, user_query, bot_input) -> List[str]:
         """Get 2-3 popular locations for the destination."""
         subcategory_keys = self.sub_categories.get("subcategories").keys()
 
@@ -168,6 +168,7 @@ You are a highly creative and knowledgeable AI fashion and travel stylist. Your 
 
 DESTINATION: {destination}
 USER QUERY: {user_query}
+CONTEXT : {bot_input}
 SUBCATEGORIES: {subcategories_str}
 
 Carefully analyze the destination, considering its culture, climate, and the types of activities available. Then, generate a response exclusively in the following JSON format.
@@ -265,7 +266,7 @@ I will give you:
 Your task is to generate a friendly and engaging paragraph of dialogue that:
 1. Gives a short, vivid context about the location — what it’s like or known for  
 2. Explains why these recommendations are great for this location and weather  
-
+3. Keep the dialogue less than 3 lines
 Keep the tone warm, conversational, and useful — like a knowledgeable friend giving helpful advice.
 
 """

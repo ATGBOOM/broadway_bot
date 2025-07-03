@@ -7,7 +7,9 @@ from typing import Dict, Any
 from occasionService import OccasionService
 from reccomendationBot import RecommendationService
 from pairingService import PairingService
-from vacationService import VacationService  # Add this import
+from vacationService import VacationService  
+from conversationService import ConversationService
+from generalService import GeneralService
 
 app = FastAPI(title="Broadway Fashion Bot WebSocket")
 
@@ -25,6 +27,8 @@ try:
     recommendation_service = RecommendationService()
     pairing_service = PairingService()
     vacation_service = VacationService()  # Add vacation service
+    general_service = GeneralService()
+   
     print("✅ Services initialized successfully")
 except Exception as e:
     print(f"❌ Error initializing services: {e}")
@@ -32,14 +36,11 @@ except Exception as e:
 
 class ChatSession:
     def __init__(self):
-        self.conversation_history = {
-            'user' : [],
-            'bot' : []
-        }
+        self.conversation_history = ""
         self.service_mode = None  # 'occasion', 'pairing', or 'vacation'
         self.current_parameters = None
         self.current_recommendations = None
-
+        self.conv_serivce = ConversationService()
 # Store active chat sessions
 chat_sessions: Dict[str, ChatSession] = {}
 
@@ -73,7 +74,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                 "message": user_input,
                 "timestamp": asyncio.get_event_loop().time()
             }))
-            
+        
             await process_user_input(websocket, session, user_input)
             
     except WebSocketDisconnect:
@@ -85,7 +86,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
 
 async def process_user_input(websocket: WebSocket, session: ChatSession, user_input: str):
     """Process user input and send appropriate response"""
-    print(session.conversation_history)
+    
     try:
         await websocket.send_text(json.dumps({
             "type": "typing",
@@ -101,6 +102,7 @@ async def process_user_input(websocket: WebSocket, session: ChatSession, user_in
                     "message": "Great! You've selected occasion-based styling. Tell me about the occasion - is it for work, a wedding, a party, or something else?",
                     "message_type": "mode_selected"
                 }))
+                print(session.service_mode)
                 return
             elif user_input.strip() == "2":
                 session.service_mode = "pairing"
@@ -118,6 +120,7 @@ async def process_user_input(websocket: WebSocket, session: ChatSession, user_in
                     "message_type": "mode_selected"
                 }))
                 return
+            
             else:
                 await websocket.send_text(json.dumps({
                     "type": "bot_message",
@@ -125,7 +128,10 @@ async def process_user_input(websocket: WebSocket, session: ChatSession, user_in
                     "message_type": "invalid_selection"
                 }))
                 return
-        
+        intent, context = session.conv_serivce.processTurn(user_input)
+        session.service_mode = intent.lower()
+        session.conversation_history = context
+        print(session.service_mode, session.conversation_history)
         # Handle based on selected service mode
         if session.service_mode == "occasion":
             await handle_occasion_mode(websocket, session, user_input)
@@ -133,12 +139,10 @@ async def process_user_input(websocket: WebSocket, session: ChatSession, user_in
             await handle_pairing_mode(websocket, session, user_input)
         elif session.service_mode == "vacation":
             await handle_vacation_mode(websocket, session, user_input)
-        
+        elif session.service_mode == "general":
+            await handle_general_mode(websocket, session, user_input)
         # Update conversation history
-        if session.conversation_history['user']:
-            session.conversation_history['user'].append(user_input)
-        else:
-            session.conversation_history['user'] = [user_input]
+     
         
     except Exception as e:
         print(f"Error processing user input: {e}")
@@ -149,8 +153,9 @@ async def process_user_input(websocket: WebSocket, session: ChatSession, user_in
 
 async def handle_occasion_mode(websocket: WebSocket, session: ChatSession, user_input: str):
     """Handle occasion-based styling requests"""
-    parameters = occasion_service.extract_parameters(user_input, session.current_parameters)
+    parameters = occasion_service.extract_parameters(user_input, session.current_parameters, session.conversation_history)
     session.current_parameters = parameters
+    
     
     confidence_score = occasion_service.get_confidence_score(parameters)
     missing_params = occasion_service.get_missing_core_parameters(parameters)
@@ -177,6 +182,15 @@ async def handle_occasion_mode(websocket: WebSocket, session: ChatSession, user_
     else:
         await generate_occasion_recommendations(websocket, session, user_input, parameters, confidence_score)
 
+async def handle_general_mode(websocket: WebSocket, session: ChatSession, user_input: str):
+    
+    general_message = general_service.respond(session.conversation_history, user_input)
+    await websocket.send_text(json.dumps({
+                "type": "bot_message",
+                "message": general_message,
+                "message_type": "pairing_intro"
+            }))
+
 async def handle_pairing_mode(websocket: WebSocket, session: ChatSession, user_input: str):
     """Handle item pairing requests"""
     try:
@@ -184,7 +198,7 @@ async def handle_pairing_mode(websocket: WebSocket, session: ChatSession, user_i
         item_to_pair = user_input.lower().strip()
         
         # Get complementary products
-        complements = pairing_service.getComplementProducts(item_to_pair)
+        complements = pairing_service.getComplementProducts(item_to_pair, session.conversation_history)
         
         if complements:
             # Generate a friendly response about the pairings
@@ -211,20 +225,15 @@ async def handle_pairing_mode(websocket: WebSocket, session: ChatSession, user_i
                     }
                     for i, comp in enumerate(complements[:7])  # Limit to 7 items
                 ]
-            }))
-            
-            # Update conversation history for pairing service
-            if session.conversation_history['bot']:
-                session.conversation_history['bot'].append(pairing_message)
-            else:
-                session.conversation_history['bot'] = [pairing_message]
-                
+            }))       
         else:
             await websocket.send_text(json.dumps({
                 "type": "bot_message",
                 "message": f"I couldn't find specific pairings for '{item_to_pair}'. Could you try describing the item differently? For example: 'blue jeans', 'white shirt', 'black boots', etc.",
                 "message_type": "no_pairings_found"
             }))
+
+        session.conv_serivce.endTurn(pairing_message, complements)
             
     except Exception as e:
         print(f"Error in pairing mode: {e}")
@@ -237,7 +246,7 @@ async def handle_vacation_mode(websocket: WebSocket, session: ChatSession, user_
     """Handle vacation styling requests"""
     try:
         # Get vacation recommendations from vacation service
-        vacation_recommendations = vacation_service.get_vacation_recommendation(user_input)
+        vacation_recommendations = vacation_service.get_vacation_recommendation(user_input, session.conversation_history)
         
         if "error" in vacation_recommendations:
             await websocket.send_text(json.dumps({
@@ -246,22 +255,25 @@ async def handle_vacation_mode(websocket: WebSocket, session: ChatSession, user_
                 "message_type": "destination_error"
             }))
             return
-        
+        locs = []
+        prods = []
         # Process each location recommendation
         for location_data in vacation_recommendations:
             location_name = location_data['name']
             dialogue = location_data['dialogue']
             products = location_data['products']
-            
+            locs.append(location_name)
+            prods.append(products)
             # Send the dialogue message first
             await websocket.send_text(json.dumps({
                 "type": "bot_message",
                 "message": f"📍 {location_name}\n\n{dialogue}",
                 "message_type": "vacation_location_intro"
             }))
-            
+            prods.append(products)
             # Then send the product recommendations
             if products:
+                
                 await websocket.send_text(json.dumps({
                     "type": "recommendations",
                     "location_name": location_name,
@@ -274,15 +286,12 @@ async def handle_vacation_mode(websocket: WebSocket, session: ChatSession, user_
                             "price": prod.get('price', 'N/A'),
                             "total_score": prod.get('total_score', 0)
                         }
-                        for i, prod in enumerate(products[:7])  # Limit to 7 items per location
+                        for i, prod in enumerate(products[:5])  # Limit to 7 items per location
                     ]
                 }))
+            session.conv_serivce.endTurn(location_name, products)
             
-            # Update conversation history
-            if session.conversation_history['bot']:
-                session.conversation_history['bot'].append(dialogue)
-            else:
-                session.conversation_history['bot'] = [dialogue]
+           
                 
     except Exception as e:
         print(f"Error in vacation mode: {e}")
@@ -317,10 +326,7 @@ async def generate_occasion_recommendations(websocket: WebSocket, session: ChatS
             insightful_message = occasion_service.generate_insightful_statement(
                 user_input, session.conversation_history, recommendations, parameters
             )
-            if session.conversation_history['bot']:
-                session.conversation_history['bot'].append(insightful_message)
-            else:
-                session.conversation_history['bot'] = [insightful_message]
+           
         except Exception as e:
             print(f"Error generating insightful statement: {e}")
             insightful_message = f"Great! I found {len(recommendations)} perfect options for you!"
@@ -351,7 +357,8 @@ async def generate_occasion_recommendations(websocket: WebSocket, session: ChatS
                 "type": "bot_message",
                 "message": "I couldn't find any products matching your requirements. Could you try describing what you're looking for differently?"
             }))
-            
+        session.conv_serivce.endTurn(insightful_message, recommendations)
+      
     except Exception as e:
         print(f"Error generating recommendations: {e}")
         await websocket.send_text(json.dumps({
