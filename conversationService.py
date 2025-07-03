@@ -16,7 +16,7 @@ class ConversationService:
       
 
         self.conversation_context = self.addToConversation(user_input)
-        self.intent = self.understandIntent(self.conversation_context, self.intent)
+        self.intent = self.understandIntent(self.conversation_context, self.intent, user_input)
         return self.intent, self.conversation_context
 
     def endTurn(self, response, recs=None):
@@ -100,7 +100,7 @@ Summarize and update the context to include only relevant information for the ne
 """
         return self._call_ai(prompt)
 
-    def understandIntent(self, context, previous_intent):
+    def understandIntent(self, context, previous_intent, user_input):
         prompt = f"""
         You are a highly advanced AI assistant specializing in Natural Language Understanding for e-commerce. Your primary function is to accurately determine a user's shopping intent by analyzing their latest message in the context of the conversation history.
 
@@ -147,7 +147,7 @@ Provide your response in a strict JSON format. Do not add any text outside of th
 **INPUTS FOR YOUR ANALYSIS:**
 - **Previous Intent:** `{previous_intent}`
 - **Conversation Context:** `{context}`
-- **Current User Input:** `{latest_user_message}`  <-- *You will need to add this variable to your code*
+- **Current User Input:** `{user_input}`  <-- *You will need to add this variable to your code*
 
 **JSON OUTPUT FORMAT:**
 ```json
