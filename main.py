@@ -131,7 +131,12 @@ async def process_user_input(websocket: WebSocket, session: ChatSession, user_in
         intent, context = session.conv_serivce.processTurn(user_input)
         session.service_mode = intent.lower()
         session.conversation_history = context
-        print(session.service_mode, session.conversation_history)
+        await websocket.send_text(json.dumps({
+            "type": "bot_message",
+            "message": f"**{session.conversation_history}**",
+            "message_type": "recommendation_intro"
+        }))
+  
         # Handle based on selected service mode
         if session.service_mode == "occasion":
             await handle_occasion_mode(websocket, session, user_input)

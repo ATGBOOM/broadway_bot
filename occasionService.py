@@ -111,7 +111,7 @@ You must now do the following:
 
 **PART 1: Extract & Update Parameters**  
 Review the current user query in light of the previous parameters. If the new input **adds**, **contradicts**, or **updates** any details, reflect that in the output.
-
+You can infer gender from products if it obvious such as makeup for women. For products that do not need gender add unisex.
 Extract the following **core** and **inferred** parameters in JSON format.  
 Each should be a **list of strings** or `null` if not applicable.
 
