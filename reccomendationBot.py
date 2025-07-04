@@ -71,6 +71,9 @@ class RecommendationService:
             #     continue
     
             complements = []
+            if subcat not in all_products.keys():
+                print(subcat, all_products.keys())
+                continue
             prods = all_products[subcat]
             
             for prod in prods:
@@ -393,9 +396,9 @@ Make sure to:
             prods = all_products[subcat]
             
             for prod in prods:
-                print(prod.get('title'))
+                
                 if len(set(prod.get('tags')) & set(tags)) > 1:
-                    
+                    print(prod.get('title'))
                     complements.append({
                         'product_id': prod.get('product_id'),
                         'title': prod.get('title'),

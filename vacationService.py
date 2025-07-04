@@ -43,7 +43,7 @@ class VacationService:
 
     def get_vacation_recommendation(self, user_query, bot_input) -> Dict[str, Any]:
         """Main entry point - gets popular locations and outfit recommendations for a destination."""
-        
+        print("vacation debugging", user_query, bot_input)
         # Step 1: Extract destination from user query
         destination = self._extract_destination(user_query)
         
@@ -161,38 +161,45 @@ DESTINATION:
         subcategories_str = ", ".join(subcategory_keys)
         
         prompt = f"""
-You are a highly creative and knowledgeable AI fashion and travel stylist. Your expertise lies in seamlessly blending practical travel needs with current fashion aesthetics. For the given destination, you will generate a detailed and inspiring travel and style guide.
+You are a highly creative and knowledgeable AI fashion and travel stylist. Your expertise lies in blending practical travel needs with modern fashion aesthetics. For the given destination, you will generate a detailed and engaging travel and style guide.
 
-DESTINATION: {destination}
-USER QUERY: {user_query}
-CONTEXT : {bot_input}
+DESTINATION: {destination}  
+USER QUERY: {user_query}  
+CONTEXT: {bot_input}  
 SUBCATEGORIES: {subcategories_str}
 
-If a specific product is mentioned by the user, get the subcategories for that product only.
-Carefully analyze the destination, considering its culture, climate, and the types of activities available. Then, generate a response exclusively in the following JSON format.
+Instructions:
+1. If the user mentions a specific product or product type, focus the outfit recommendations and category selection only on that product and its relevant subcategories.
+2. Analyze the destination’s culture, climate, and typical activities.
+3. Generate a natural, friendly dialogue that blends fashion advice with a mini travel narrative.
+4. Output your response strictly in the JSON format below — no markdown or explanation text.
 
+---
 
-    {{
-      "dialogue": Write a natural paragraph (not a list). Mention the destination’s atmosphere, 2–3 things to do there,  some outfits in thoe activites, a brief explanation (1-2 sentences) of why this style palette is recommended, connecting it to the location's atmosphere, activities, and climate."End with a follow-up question like: ‘Would you like a specific outfit idea for hiking or evening dinners?’"
-      "outfit": {{
-        "categories": ["Exact category from the SUBCATEGORIES list", "Another exact category"],
-        "style_palette": [
-            "vibe_or_aesthetic_1", 
-            "vibe_or_aesthetic_2", 
-            "fabric_or_texture_1", 
-            "fabric_or_texture_2", 
-            "color_scheme_1", 
-            "color_scheme_2",
-            "key_accessory_1",
-            "key_accessory_2",
-            "footwear_style"
-        ],
-       
-      }}
-    }}
+RESPONSE FORMAT:
+{{
+  "dialogue": "Write a warm, conversational paragraph (not a list). Briefly describe the destination’s vibe and weather. Mention 2–3 common activities the user might do there. Recommend outfit ideas suited for those activities and the weather, using the requested product focus if any. Include a short explanation (1–2 sentences) of why these outfits work for the place. End with a follow-up question like: ‘Would you like a specific outfit idea for hiking or evening dinners?’",
+  
+  "outfit": {{
+    "categories": ["Exact subcategories from the SUBCATEGORIES list only"],
+    "style_palette": [
+      "vibe_or_aesthetic_1",
+      "vibe_or_aesthetic_2",
+      "fabric_or_texture_1",
+      "fabric_or_texture_2",
+      "color_scheme_1",
+      "color_scheme_2",
+      "key_accessory_1",
+      "key_accessory_2",
+      "footwear_style",
+      "...additional tags up to 15 total"
+    ]
+  }}
+}}
 
+---
 
-Guidelines for Your Response:
+Guidelines:
 
 1.  **Popular Locations:**  The description for each location /activity should be brief and engaging.
 2.  **Categories:** For each location, select 5-7 of the most relevant categories from the provided `SUBCATEGORIES` list. Use the exact wording and capitalization. If a specific product type is given by the user, choose subcategories of that product only.

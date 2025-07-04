@@ -14,9 +14,8 @@ class ConversationService:
         ]
     
     def processTurn(self, user_input, intent = "general"):
-      
-
         self.conversation_context = self.addToConversation(user_input)
+
         self.intent = self.understandIntent(self.conversation_context, self.intent, user_input)
         return self.intent, self.conversation_context
 
@@ -24,9 +23,11 @@ class ConversationService:
         if recs:
             self.recs = recs
         self.conversation_context = self.endConvo(response)
+        print("ending turn", self.conversation_context)
         return self.conversation_context
     
     def addToConversation(self, user_input):
+        print("conversation given to add bot", self.conversation_context)
         prompt = f"""
 You are a smart assistant helping interpret user requests for fashion and product recommendations.
 
@@ -38,7 +39,8 @@ You are given:
 Your task:
 - Carefully analyze the user query in the context of the prior conversation and recommendations
 - Determine the user's **true intent**
-- You have to judge if the user input is related to the previous context, if it is unrelated create a new context based on the input
+- If the new input continues the same topic, asks for clarification, provides more detail, or logically builds on the previous conversation it is related
+- If the input starts a completely new topic or switches to something unrelated, it is unrelated
 - Return a **clear, concise, and structured** natural-language summary of what the user wants, so that downstream services can respond accurately.
 
 This summary should:
@@ -90,18 +92,24 @@ Summarize and update the context to include only relevant information for the ne
 - Items or tags mentioned (e.g., floral shirt, beachwear)
 - Inferred or explicitly stated parameters (e.g., gender, budget, occasion, colors, product types)
 - Any follow-up intent (e.g., user liked something, asked for variations, changed direction)
+- Any follow ups asked by the bot
 
 **Format the new context as a structured paragraph. Keep it concise but informative.**
 
 ---
 
 **OUTPUT FORMAT (strict):**
-```text
+
 [UpdatedContextHere]
 """
-        return self._call_ai(prompt)
+        
+        response = self._call_ai(prompt)
+        self.conversation_context = response
+        print("response from end bot", response)
+        return response
 
     def understandIntent(self, context, previous_intent, user_input):
+        print("conversation given to intent bot", self.conversation_context)
         prompt = f"""
         You are a highly advanced AI assistant specializing in Natural Language Understanding for e-commerce. Your primary function is to accurately determine a user's shopping intent by analyzing their latest message in the context of the conversation history.
 
@@ -121,7 +129,7 @@ Based on your analysis, choose **ONLY ONE** of the following intents.
 **INTENT DEFINITIONS:**
 
 * **"Vacation"**
-    * **Description:** The user is planning, packing for, or currently on a trip, and their request is for outfits on the trabel. - this should only be called once, otherwise call occasion
+    * **Description:** The user is planning to go on a trip or packing for a trip.
     * **Trigger Keywords:** "trip," "traveling to," "packing for," "vacation," "holiday," "going to [destination]," "what to wear in [city/country]."
     * **Example:** User was looking for sunglasses. Current input is "I'll be going to Goa next month, what else should I pack?" -> **Vacation**.
 
@@ -148,7 +156,7 @@ Provide your response in a strict JSON format. Do not add any text outside of th
 **INPUTS FOR YOUR ANALYSIS:**
 - **Previous Intent:** `{previous_intent}`
 - **Conversation Context:** `{context}`
-- **Current User Input:** `{user_input}`  <-- *You will need to add this variable to your code*
+
 
 **JSON OUTPUT FORMAT:**
 ```json
