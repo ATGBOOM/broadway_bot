@@ -191,12 +191,28 @@ async def handle_occasion_mode(websocket: WebSocket, session: ChatSession, user_
 
 async def handle_general_mode(websocket: WebSocket, session: ChatSession, user_input: str):
     
-    general_message = general_service.respond(session.conversation_history, user_input)
+    general_message, prods = general_service.respond(session.conversation_history, user_input)
     await websocket.send_text(json.dumps({
                 "type": "bot_message",
                 "message": general_message,
                 "message_type": "pairing_intro"
             }))
+    if prods:
+        await websocket.send_text(json.dumps({
+                "type": "recommendations",
+                "recommendations": [
+                    {
+                        "id": i + 1,
+                        "product_id": comp['product_id'],
+                        "title": comp['title'],
+                        "brand_name": comp['brand_name'],
+                        "price": comp.get('price', 'N/A'),
+                        "total_score": len(comp.get('tags', [])),  # Use tag count as score
+                        "pairing_tags": list(comp.get('tags', []))  # Show matching tags
+                    }
+                    for i, comp in enumerate(prods[:7])  # Limit to 7 items
+                ]
+            }))       
 
 async def handle_pairing_mode(websocket: WebSocket, session: ChatSession, user_input: str):
     """Handle item pairing requests"""
@@ -270,7 +286,7 @@ async def handle_vacation_mode(websocket: WebSocket, session: ChatSession, user_
                         "title": prod['title'],
                         "brand_name": prod['brand_name'],
                         "price": prod.get('price', 'N/A'),
-                        "total_score": prod.get('total_score', 0)
+                       
                     }
                     for i, prod in enumerate(products[:7])  # Fixed: using 'prod' consistently
                 ]
@@ -301,7 +317,7 @@ async def generate_occasion_recommendations(websocket: WebSocket, session: ChatS
             user_query=user_input, 
             tags=all_tags, 
             gender=[gender] if gender else None,
-            categories=categories,
+            sub_categories=categories,
             conversation_history=session.conversation_history
         )
         
@@ -332,7 +348,7 @@ async def generate_occasion_recommendations(websocket: WebSocket, session: ChatS
                         "title": rec['title'],
                         "brand_name": rec['brand_name'],
                         "price": rec.get('price', 'N/A'),
-                        "total_score": rec['total_score']
+                        
                     }
                     for i, rec in enumerate(recommendations)
                 ]
@@ -467,7 +483,7 @@ async def get_chat_interface():
                 html += `
                     <div class="recommendation-item">
                         <strong>${rec.title}</strong> by ${rec.brand_name}<br>
-                        <small>Price: ₹${rec.price} | Score: ${rec.total_score}</small>
+                        <small>Price: ₹${rec.price} </small>
                 `;
                 
                 // Add pairing tags if available

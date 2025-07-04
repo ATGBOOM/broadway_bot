@@ -2,6 +2,7 @@ import json
 from typing import Dict, List, Optional, Any
 from openai import OpenAI
 import os
+from dataService import  ProductDataService
 
 class OccasionService:
     PARAMETER_PRIORITY = ["gender", "occasion"]
@@ -10,7 +11,7 @@ class OccasionService:
         """Initialize the OccasionService with OpenAI client."""
         # OpenAI() automatically uses OPENAI_API_KEY environment variable
         self.client = OpenAI()
-        
+        self.data_service = ProductDataService()
         self.core_parameters = [
             "occasion", "time", "location", "body_type", "budget", "gender", "specifications"
         ]
@@ -89,7 +90,7 @@ class OccasionService:
     
     def _create_extraction_prompt(self, user_input: str, parameters, bot_input) -> str:
         """Create the prompt for AI parameter extraction."""
-
+        subcategory_keys = self.data_service.get_subcategories_available().get("subcategories").keys()
         
         prompt = f"""
 You are an expert fashion and beauty stylist and personal shopper AI. Your task is to analyze the current user query in the context of **previously extracted parameters**, and return an **updated parameter set**, **relevant product categories**, and any **essential follow-up questions**.
@@ -141,9 +142,9 @@ From the combined parameter set, return a list of **relevant high-level product 
 
 Use ONLY categories from this list:  
 **AVAILABLE_CATEGORIES:**  
-["Clothing", "Footwear", "Accessories", "Beauty", "Personal Care"]
+{subcategory_keys}
 
-Return 1–5 categories based on the user’s needs.
+Return 1-5 categories based on the user’s needs.
 
 ---
 

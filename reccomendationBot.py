@@ -1,3 +1,4 @@
+import json
 from typing import Dict, List, Any, Tuple
 from dataService import ProductDataService 
 from openai import OpenAI
@@ -239,9 +240,7 @@ RESPOND EXACTLY IN THE FORMAT ABOVE
     TITLE: {product.get('title', 'N/A')}
     BRAND: {product.get('brand_name', 'N/A')}
     PRICE: ₹{product.get('price', 'N/A')}
-    MATCHED_IMPORTANT_TAGS: {', '.join(product.get('matched_important_tags', []))}
-    MATCHED_REGULAR_TAGS: {', '.join(product.get('matched_regular_tags', []))}
-    TOTAL_SCORE: {product.get('total_score', 0)}"""
+"""
             formatted_products.append(product_info)
         
         products_text = '\n'.join(formatted_products)
@@ -319,6 +318,59 @@ NO_MATCHES
             print(f"Fallback to top products: {fallback_ids}")
             return fallback_ids
 
+    def get_categories_product_tags(self, user_input, context):
+        
+        subcategory_keys = self.product_service.get_subcategories_available().get("subcategories").keys()
+        prompt = f""""
+USER QUERY: {user_input}
+CONTEXT: {context}
+AVAILABLE SUBCATEGORIES: {subcategory_keys}
+
+You are a fashion and beauty tagging assistant for Broadway.
+
+Your task is to:
+1. Analyze the user's query and context.
+2. If the user is seeking product recommendations:
+    - Identify and return a list of relevant subcategories from the provided list only
+    - Generate 8–15 associated descriptive tags that reflect the user's intent, product style, use-case, fit, vibe, season, or preferences. These will help in matching the right products.
+
+If the user is asking for general information (not product recommendations), return:
+None
+
+---
+
+**Output Format:**
+If the query is informational:
+None
+
+If the query is product-based:
+{{
+  "subcategories": ["Exact Subcategory 1", "Exact Subcategory 2"],
+  "tags": ["tag1", "tag2", "tag3", ..., "tag15"]
+}}
+
+Make sure to:
+- Only use subcategory names from the given list.
+- Ensure the tags are descriptive, relevant, and varied (e.g., "minimalist", "stretch denim", "lightweight", "vacation-ready", "classic fit", "boho", "monochrome", etc.)
+- Return only valid JSON without explanations or formatting.
+"""
+
+        
+
+        response = self._call_ai(prompt).strip()
+            
+        # Find JSON content
+        start_idx = response.find('{')
+        end_idx = response.rfind('}') + 1
+        
+        if start_idx != -1 and end_idx != 0:
+            json_content = json.loads(response[start_idx:end_idx])
+            print(json_content)
+            return json_content['subcategories'], json_content['tags']
+        else:
+            raise ValueError("No JSON found in response")
+            
+
     def _call_ai(self, prompt):
         """Send prompt to AI model."""
         try:
@@ -330,59 +382,71 @@ NO_MATCHES
         except Exception as e:
             print(f"AI API error: {e}")
             return ""
+    
+    def get_general_reccomendations(self, user_query, context):
+        sub_categories, tags = self.get_categories_product_tags(user_query, context)
+        all_products = self.product_service.get_subcategory_data(sub_categories)
+        return_prods = []
+        
+        for subcat in sub_categories:
+            complements = []
+            prods = all_products[subcat]
+            
+            for prod in prods:
+                print(prod.get('title'))
+                if len(set(prod.get('tags')) & set(tags)) > 1:
+                    
+                    complements.append({
+                        'product_id': prod.get('product_id'),
+                        'title': prod.get('title'),
+                        'brand_name': prod.get('brand_name'),
+                        'price': prod.get('price'),
+                        #'average_rating': prod.get('average_rating'),
+                        'tags': set(prod.get('tags')) & set(tags),
+                    })
+            complements.sort(key=lambda x: len(x['tags']), reverse=True)
+        
+            prod_ids = self.checkRecs(f"{user_query}", "", complements[:20])
+            filtered_complements = [comp for comp in complements if comp['product_id'] in prod_ids][:5]
 
-    def get_recommendations(self, user_query: str, tags, gender = None, categories=None, 
+            return_prods.extend(filtered_complements[:4])
+        return return_prods
+
+
+    def get_recommendations(self, user_query: str, tags, gender = None, sub_categories=None, 
                           conversation_history: str = "", top_n: int = 5) -> List[Dict[str, Any]]:
         """Get product recommendations based on tags."""
         
         print("tags", tags)
-        important_tags, regular_tags = self.convert_to_searchable_tags(user_query, conversation_history, tags, categories)
-        final_matches = []
-        candidate_products = []
-        # Get candidate products
-        print("categories are: ", categories)
-        for category in categories:
-            candidate_products = self.get_products_by_category(category)
-      
+        important_tags, regular_tags = self.convert_to_searchable_tags(user_query, conversation_history, tags, sub_categories)
+        tags = important_tags + regular_tags
+        all_products = self.product_service.get_subcategory_data(sub_categories)
+        return_prods = []
         
-        # Score and match products
-            product_matches = []
+        for subcat in sub_categories:
+            # if subcat.capitalize() not in all_products:
+            #     continue
     
-            for product in candidate_products:
-                product_tags = product.get('tags', [])
-
-                important_matches = sum(1 for tag in important_tags if tag in product_tags)
-                regular_matches = sum(1 for tag in regular_tags if tag in product_tags)
-                total_score = (important_matches * 5) + regular_matches
-                if gender and gender[0] not in product_tags:
-                    continue
-                if important_matches > 0 and regular_matches > 1:  
-                    print(product.get('title'))
-                    matched_important = [tag for tag in important_tags if tag in product_tags]
-                    matched_regular = [tag for tag in regular_tags if tag in product_tags]
-                    product_matches.append({
-                        'product_id': product.get('product_id'),
-                        'title': product.get('title'),
-                        'brand_name': product.get('brand_name'),
-                        'price': product.get('price'),
-                        'average_rating': product.get('average_rating'),
-                        'total_score': total_score,
-                        'matched_important_tags': matched_important,
-                        'matched_regular_tags': matched_regular,
-                        'important_matches': important_matches,
-                        'regular_matches': regular_matches,
-                        'banned_matches': 0,
-                        'matched_banned_tags': [],
-                        'weighted_score': total_score
+            complements = []
+            prods = all_products[subcat]
+            
+            for prod in prods:
+         
+                if len(set(prod.get('tags')) & set(tags)) > 1:
+                    print(prod.get('title'))
+                    complements.append({
+                        'product_id': prod.get('product_id'),
+                        'title': prod.get('title'),
+                        'brand_name': prod.get('brand_name'),
+                        'price': prod.get('price'),
+                        #'average_rating': prod.get('average_rating'),
+                        'tags': set(prod.get('tags')) & set(tags),
                     })
-            
-            # Sort by score and validate
-            product_matches.sort(key=lambda x: (x['total_score'], x.get('average_rating', 0)), reverse=True)
+            complements.sort(key=lambda x: len(x['tags']), reverse=True)
+            print(user_query)
+            prod_ids = self.checkRecs(f"{user_query}", "", complements[:20])
+            filtered_complements = [comp for comp in complements if comp['product_id'] in prod_ids][:5]
 
-            if product_matches:
-        
-                validated_ids = self.checkRecs(user_query, conversation_history, product_matches[:20])
-                final_match = [p for p in product_matches if p['product_id'] in validated_ids]
-                final_matches.extend(final_match[:top_n])
-            
-        return final_matches
+            return_prods.extend(filtered_complements[:4])
+        return return_prods
+
