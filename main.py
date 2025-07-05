@@ -4,21 +4,26 @@ import json
 import asyncio
 import os
 from typing import Dict, Any
+
+# Your existing imports
 from occasionService import OccasionService
 from reccomendationBot import RecommendationService
 from pairingService import PairingService
 from vacationService import VacationService  
 from conversationService import ConversationService
 from generalService import GeneralService
-from openai import OpenAI
+from genderService import GenderService
+
+
+# NEW: Import LangGraph integration
+from fashion_graph import ChatSession
 
 app = FastAPI(title="Broadway Fashion Bot WebSocket")
 
-# Check if API key is available
+# Your existing service initialization
 api_key = os.getenv('OPENAI_API_KEY')
 if not api_key:
     print("❌ OPENAI_API_KEY environment variable not set!")
-    print("Available env vars:", list(os.environ.keys()))
 else:
     print("✅ OPENAI_API_KEY found in environment")
 
@@ -27,69 +32,12 @@ try:
     occasion_service = OccasionService()
     recommendation_service = RecommendationService()
     pairing_service = PairingService()
-    vacation_service = VacationService()  # Add vacation service
+    vacation_service = VacationService()
     general_service = GeneralService()
-   
     print("✅ Services initialized successfully")
 except Exception as e:
     print(f"❌ Error initializing services: {e}")
     raise
-
-class ChatSession:
-    def __init__(self):
-        self.conversation_history = ""
-        self.service_mode = None  # 'occasion', 'pairing', or 'vacation'
-        self.current_parameters = None
-        self.current_recommendations = None
-        self.conv_serivce = ConversationService()
-        self.gender = None
-        self.client = OpenAI()
-    
-    def get_gender(self, user_query):
-        prompt = prompt = f"""
-USER QUERY: {user_query}
-CONTEXT: {self.conversation_history}
-
-You are an intelligent fashion assistant tasked with inferring the appropriate **gender** for the product recommendations based on the user's query and conversation history.
-
-Your task:
-- Carefully analyze the user query and the surrounding context.
-- Determine whether the product recommendations should be tailored for:
-  - **Male**
-  - **Female**
-  - **Unisex** (if gender is not relevant)
-  - **None** (if gender cannot be confidently inferred)
-
-Rules:
-- If gender is clearly implied or stated → return "Male" or "Female"
-- If the product is universally used or not gender-specific → return "Unisex"
-- If you are uncertain based on the available context → return "None"
-
-**Output Format:**
-Only return one of the following (case-sensitive, without quotes):
-Male  
-Female  
-Unisex  
-None
-"""
-
-        
-        response = self._call_ai(prompt).strip()
-        if response in ['Male', 'Female', 'Unisex']:
-            self.gender = response
-        print(response)
-        return response
-    
-    def _call_ai(self, prompt: str) -> str:
-        """Send prompt to AI and get response."""
-        completion = self.client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.1
-        )
-        return completion.choices[0].message.content
 
 # Store active chat sessions
 chat_sessions: Dict[str, ChatSession] = {}
@@ -98,15 +46,27 @@ chat_sessions: Dict[str, ChatSession] = {}
 async def websocket_endpoint(websocket: WebSocket, client_id: str):
     await websocket.accept()
     
+    # Initialize services dict for LangGraph
+    services_dict = {
+        'occasion': OccasionService(),
+        'recommendation': RecommendationService(),
+        'pairing': PairingService(),
+        'vacation': VacationService(),
+        'conversation': ConversationService(),
+        'general': GeneralService(),
+        'gender' : GenderService()
+    }
+    
     if client_id not in chat_sessions:
-        chat_sessions[client_id] = ChatSession()
+        chat_sessions[client_id] = ChatSession(services_dict)
+        chat_sessions[client_id].client_id = client_id  # Add client_id to session
     
     session = chat_sessions[client_id]
     
-    # Send initial service selection message
+    # Send initial message
     await websocket.send_text(json.dumps({
         "type": "bot_message",
-        "message": "👋 Welcome to Broadway Fashion! I'm here to help you find the perfect outfit.\n\nChoose your styling mode:\n1️⃣ Occasion-based styling (weddings, work, parties, etc.)\n2️⃣ Item pairing (find what goes with specific pieces)\n3️⃣ Vacation styling (destination-based outfit recommendations)\n\nJust type 1, 2, or 3 to get started!",
+        "message": "👋 Welcome to Broadway Fashion! I'm here to help you find the perfect outfit. What would you like help with today?",
         "timestamp": asyncio.get_event_loop().time()
     }))
     
@@ -119,13 +79,15 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
             if not user_input:
                 continue
             
+            # Echo user message
             await websocket.send_text(json.dumps({
                 "type": "user_message", 
                 "message": user_input,
                 "timestamp": asyncio.get_event_loop().time()
             }))
-        
-            await process_user_input(websocket, session, user_input)
+            
+            # Process with new LangGraph function
+            await process_user_input_new(websocket, session, user_input)
             
     except WebSocketDisconnect:
         print(f"Client {client_id} disconnected")
@@ -134,310 +96,28 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
     except Exception as e:
         print(f"WebSocket error: {e}")
 
-async def process_user_input(websocket: WebSocket, session: ChatSession, user_input: str):
-    """Process user input and send appropriate response"""
+async def process_user_input_new(websocket: WebSocket, session: ChatSession, user_input: str):
+    """New process function using LangGraph"""
     
     try:
+        # Show typing indicator
         await websocket.send_text(json.dumps({
             "type": "typing",
             "message": "Bot is thinking...",
         }))
         
-        # Handle service mode selection
-        if session.service_mode is None:
-            if user_input.strip() == "1":
-                session.service_mode = "occasion"
-                await websocket.send_text(json.dumps({
-                    "type": "bot_message",
-                    "message": "Great! You've selected occasion-based styling. Tell me about the occasion - is it for work, a wedding, a party, or something else?",
-                    "message_type": "mode_selected"
-                }))
-                print(session.service_mode)
-                return
-            elif user_input.strip() == "2":
-                session.service_mode = "pairing"
-                await websocket.send_text(json.dumps({
-                    "type": "bot_message",
-                    "message": "Perfect! You've selected item pairing mode. Tell me what piece you'd like to style - for example: 'linen pants', 'black dress', 'denim jacket', etc.",
-                    "message_type": "mode_selected"
-                }))
-                return
-            elif user_input.strip() == "3":
-                session.service_mode = "vacation"
-                await websocket.send_text(json.dumps({
-                    "type": "bot_message",
-                    "message": "Wonderful! You've selected vacation styling mode. Tell me about your destination - for example: 'planning a trip to Goa', 'going to Thailand', 'visiting Paris', etc.",
-                    "message_type": "mode_selected"
-                }))
-                return
-            
-            else:
-                await websocket.send_text(json.dumps({
-                    "type": "bot_message",
-                    "message": "Please choose a valid option:\n1️⃣ for occasion-based styling\n2️⃣ for item pairing\n3️⃣ for vacation styling\n\nJust type 1, 2, or 3!",
-                    "message_type": "invalid_selection"
-                }))
-                return
-        print("the user input", user_input)
-        intent, context = session.conv_serivce.processTurn(user_input)
-        session.service_mode = intent.lower()
-        session.conversation_history = context
-        await websocket.send_text(json.dumps({
-            "type": "bot_message",
-            "message": f"**{session.conversation_history}**",
-            "message_type": "recommendation_intro"
-        }))
-        session.get_gender(user_input)
-        # Handle based on selected service mode
-        if session.service_mode == "occasion":
-            await handle_occasion_mode(websocket, session, user_input)
-        elif session.service_mode == "pairing":
-            await handle_pairing_mode(websocket, session, user_input)
-        elif session.service_mode == "vacation":
-         
-            await handle_vacation_mode(websocket, session, user_input)
-        elif session.service_mode == "general":
-            print("this is calling the general service")
-            await handle_general_mode(websocket, session, user_input)
-        # Update conversation history
-     
+        # Process with LangGraph
+        messages = await session.process_with_langgraph(user_input, session.client_id)
         
+        # Send all messages
+        for message in messages:
+            await websocket.send_text(json.dumps(message))
+            
     except Exception as e:
         print(f"Error processing user input: {e}")
         await websocket.send_text(json.dumps({
             "type": "error",
             "message": f"Sorry, I encountered an error: {str(e)}"
-        }))
-
-async def handle_occasion_mode(websocket: WebSocket, session: ChatSession, user_input: str):
-    """Handle occasion-based styling requests"""
-    parameters = occasion_service.extract_parameters(user_input, session.current_parameters, session.conversation_history)
-    session.current_parameters = parameters
-    
-    
-    confidence_score = occasion_service.get_confidence_score(parameters)
-    missing_params = occasion_service.get_missing_core_parameters(parameters)
-    
-    await websocket.send_text(json.dumps({
-        "type": "debug_info",
-        "confidence_score": confidence_score,
-        "missing_parameters": missing_params
-    }))
-    
-
-    occasion = parameters.get('core_parameters', {}).get('occasion') is not None
-    
-    if not session.gender or not occasion:
-        followup_message = parameters.get('follow_up_questions', ["Could you tell me more about the occasion and whether this is for men or women?"])
-        session.conv_serivce.endConvo("Could you tell whether this is for men or women?")
-        if isinstance(followup_message, list) and followup_message:
-            followup_message = followup_message[0]
-        
-        await websocket.send_text(json.dumps({
-            "type": "bot_message",
-            "message": "Could you tell me more about the occasion and whether this is for men or women?",
-            "message_type": "followup_question"
-        }))
-        
-    else:
-        await generate_occasion_recommendations(websocket, session, user_input, parameters, confidence_score)
-
-async def handle_general_mode(websocket: WebSocket, session: ChatSession, user_input: str):
-    
-    general_message, prods = general_service.respond(session.conversation_history, user_input)
-    await websocket.send_text(json.dumps({
-                "type": "bot_message",
-                "message": general_message,
-                "message_type": "pairing_intro"
-            }))
-    
-    if prods:
-        await websocket.send_text(json.dumps({
-                "type": "recommendations",
-                "recommendations": [
-                    {
-                        "id": i + 1,
-                        "product_id": comp['product_id'],
-                        "title": comp['title'],
-                        "brand_name": comp['brand_name'],
-                        "price": comp.get('price', 'N/A'),
-                        "total_score": len(comp.get('tags', [])),  # Use tag count as score
-                        "pairing_tags": list(comp.get('tags', []))  # Show matching tags
-                    }
-                    for i, comp in enumerate(prods[:7])  # Limit to 7 items
-                ]
-            }))       
-
-async def handle_pairing_mode(websocket: WebSocket, session: ChatSession, user_input: str):
-    """Handle item pairing requests"""
-    try:
-        # Extract the item from user input
-        item_to_pair = user_input.lower().strip()
-        pairing_message = f"Could not find items to pair with {item_to_pair}"
-        # Get complementary products
-        if not session.gender:
-            await websocket.send_text(json.dumps({
-                "type": "bot_message",
-                "message": "Could you tell whether this is for men or women?",
-                "message_type": "followup_question"
-            }))
-            session.conv_serivce.endConvo("Could you tell whether this is for men or women?")
-            return
-        else:
-            complements = pairing_service.getComplementProducts(item_to_pair, session.conversation_history)
-        
-        if complements:
-            # Generate a friendly response about the pairings
-            pairing_message = f"Perfect! For {item_to_pair}, here are some great pieces that would complement it beautifully. These combinations will create cohesive, stylish looks!"
-            
-            await websocket.send_text(json.dumps({
-                "type": "bot_message",
-                "message": pairing_message,
-                "message_type": "pairing_intro"
-            }))
-            
-            # Send the complementary items as recommendations
-            await websocket.send_text(json.dumps({
-                "type": "recommendations",
-                "recommendations": [
-                    {
-                        "id": i + 1,
-                        "product_id": comp['product_id'],
-                        "title": comp['title'],
-                        "brand_name": comp['brand_name'],
-                        "price": comp.get('price', 'N/A'),
-                        "total_score": len(comp.get('tags', [])),  # Use tag count as score
-                        "pairing_tags": list(comp.get('tags', []))  # Show matching tags
-                    }
-                    for i, comp in enumerate(complements[:7])  # Limit to 7 items
-                ]
-            }))       
-        else:
-            await websocket.send_text(json.dumps({
-                "type": "bot_message",
-                "message": f"I couldn't find specific pairings for '{item_to_pair}'. Could you try describing the item differently? For example: 'blue jeans', 'white shirt', 'black boots', etc.",
-                "message_type": "no_pairings_found"
-            }))
-
-        session.conv_serivce.endTurn(pairing_message, complements)
-            
-    except Exception as e:
-        print(f"Error in pairing mode: {e}")
-        await websocket.send_text(json.dumps({
-            "type": "error",
-            "message": f"Error finding pairings: {str(e)}"
-        }))
-
-async def handle_vacation_mode(websocket: WebSocket, session: ChatSession, user_input: str):
-    """Handle vacation styling requests"""
-    try:
-        # Get vacation recommendations from vacation service
-        if not session.gender:
-            session.conv_serivce.endConvo("Could you tell whether this is for men or women?")
-            await websocket.send_text(json.dumps({
-                "type": "bot_message",
-                "message": "Could you tell whether this is for men or women?",
-                "message_type": "followup_question"
-            }))
-            
-            return
-        else:
-            dialogue, products = vacation_service.get_vacation_recommendation(user_input, session.conversation_history)
-
-        await websocket.send_text(json.dumps({
-                "type": "bot_message",
-                "message": dialogue,
-                "message_type": "vacation_location_intro"
-            }))
-
-        await websocket.send_text(json.dumps({
-                "type": "recommendations",
-                "recommendations": [
-                    {
-                        "id": i + 1,
-                        "product_id": prod['product_id'],
-                        "title": prod['title'],
-                        "brand_name": prod['brand_name'],
-                        "price": prod.get('price', 'N/A'),
-                       
-                    }
-                    for i, prod in enumerate(products[:7])  # Fixed: using 'prod' consistently
-                ]
-            }))
-    
-        session.conv_serivce.endTurn(dialogue, products)
-            
-    except Exception as e:
-        print(f"Error in vacation mode: {e}")
-        await websocket.send_text(json.dumps({
-            "type": "error",
-            "message": f"Error getting vacation recommendations: {str(e)}"
-        }))
-
-async def generate_occasion_recommendations(websocket: WebSocket, session: ChatSession, user_input: str, parameters: Dict[str, Any], confidence_score: float):
-    """Generate and send product recommendations for occasion-based styling"""
-    
-    try:
-        parameters_flat = occasion_service.get_all_tags_flat(parameters)
-        all_tags = parameters_flat["core_tags"] + parameters_flat["inferred_tags"]
-
-        gender = parameters.get('core_parameters', {}).get('gender')
-        if isinstance(gender, list):
-            gender = gender[0] if gender else None
-        categories = parameters['product_categories']
-
-        recommendations = recommendation_service.get_recommendations(
-            user_query=user_input, 
-            tags=all_tags, 
-            gender=[gender] if gender else None,
-            sub_categories=categories,
-            conversation_history=session.conversation_history
-        )
-        
-        session.current_recommendations = recommendations
-        
-        try:
-            insightful_message = occasion_service.generate_insightful_statement(
-                user_input, session.conversation_history, recommendations, parameters
-            )
-           
-        except Exception as e:
-            print(f"Error generating insightful statement: {e}")
-            insightful_message = f"Great! I found {len(recommendations)} perfect options for you!"
-            
-        await websocket.send_text(json.dumps({
-            "type": "bot_message",
-            "message": insightful_message,
-            "message_type": "recommendation_intro"
-        }))
-        
-        if recommendations:
-            await websocket.send_text(json.dumps({
-                "type": "recommendations",
-                "recommendations": [
-                    {
-                        "id": i + 1,
-                        "product_id": rec['product_id'],
-                        "title": rec['title'],
-                        "brand_name": rec['brand_name'],
-                        "price": rec.get('price', 'N/A'),
-                        
-                    }
-                    for i, rec in enumerate(recommendations)
-                ]
-            }))
-        else:
-            await websocket.send_text(json.dumps({
-                "type": "bot_message",
-                "message": "I couldn't find any products matching your requirements. Could you try describing what you're looking for differently?"
-            }))
-        session.conv_serivce.endTurn(insightful_message, recommendations)
-      
-    except Exception as e:
-        print(f"Error generating recommendations: {e}")
-        await websocket.send_text(json.dumps({
-            "type": "error",
-            "message": f"Error generating recommendations: {str(e)}"
         }))
 
 @app.get("/")

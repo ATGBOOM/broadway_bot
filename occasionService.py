@@ -33,6 +33,7 @@ class OccasionService:
             if not parameters or not parameters.get('core_parameters'):
                 print("❌ AI parsing failed, using keyword fallback")
                 return self._keyword_fallback(user_input)
+          
                 
             return parameters
         except Exception as e:
@@ -267,9 +268,7 @@ If **important information** is missing (especially `gender`), or if you need mo
         return {
             "core_parameters": {param: None for param in self.core_parameters},
             "inferred_parameters": {param: None for param in self.inferred_parameters}
-        }
-    
-    
+        }  
     
     def get_missing_core_parameters(self, parameters: Dict[str, Any]) -> List[str]:
         """Get list of missing core parameters that need follow-up questions."""
