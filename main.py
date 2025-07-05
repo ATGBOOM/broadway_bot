@@ -273,7 +273,7 @@ async def handle_pairing_mode(websocket: WebSocket, session: ChatSession, user_i
     try:
         # Extract the item from user input
         item_to_pair = user_input.lower().strip()
-        
+        pairing_message = f"Could not find items to pair with {item_to_pair}"
         # Get complementary products
         if not session.gender:
             await websocket.send_text(json.dumps({
