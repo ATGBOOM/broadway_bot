@@ -32,6 +32,7 @@ Your task is to analyze the full context and determine the most appropriate gend
 Rules:
 - If the gender is clearly implied or mentioned → return Male or Female
 - If the product or query is clearly unisex or not gender-specific → return Unisex
+- If the query is informational rather than reccomendation based -> return Unisex
 - If gender cannot be confidently determined from the information → return None
 - If previously known gender is provided, return the user input is requesting for a different person.
 ---
