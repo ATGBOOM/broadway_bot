@@ -437,6 +437,8 @@ Make sure to:
             #     continue
     
             complements = []
+            if subcat not in all_products.keys():
+                continue
             prods = all_products[subcat]
             
             for prod in prods:

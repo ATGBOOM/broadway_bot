@@ -11,9 +11,22 @@ class GeneralService:
         dialogue, rec = self.respond_text(context, user_query)
         if rec:
             prods = self.reccomendation.get_general_reccomendations(user_query, context)
+            if len(prods) == 0:
+                dialogue = self.noRecs(dialogue)
+                print("no recs called", dialogue)
             return dialogue, prods
         return dialogue, None
-    
+
+
+    def noRecs(self, dialogue):
+        prompt = f"""
+
+            Remove followup questions and add an apology for not having reccomendations in the text below
+            {dialogue}
+
+    """
+        return self._call_ai(prompt)
+
     def respond_text(self, context, user_query):
         prompt = f"""
 You are an intelligent, humorous, and insightful shopping assistant for the brand **Broadway**, which offers a wide range of fashion, beauty, and personal care products.
