@@ -13,20 +13,20 @@ class ConversationService:
             'Vacation'
         ]
     
-    def processTurn(self, user_input, intent = "general"):
-        self.conversation_context = self.addToConversation(user_input)
+    def processTurn(self, user_input, gender, intent = "general"):
+        self.conversation_context = self.addToConversation(user_input, gender)
 
         self.intent = self.understandIntent(self.conversation_context, self.intent, user_input)
         return self.intent, self.conversation_context
 
-    def endTurn(self, response, recs=None):
+    def endTurn(self, response, gender, recs=None):
         if recs:
             self.recs = recs
-        self.conversation_context = self.endConvo(response)
+        self.conversation_context = self.endConvo(response, gender)
         print("ending turn", self.conversation_context)
         return self.conversation_context
     
-    def addToConversation(self, user_input):
+    def addToConversation(self, user_input, gender):
         print("conversation given to add bot", self.conversation_context)
         prompt = f"""
 You are a smart assistant helping interpret user requests for fashion and product recommendations.
@@ -56,6 +56,9 @@ CONVERSATION CONTEXT:
 USER QUERY:
 {user_input}
 
+USERS KNOWN GENDER:
+{gender}
+
 RECOMMENDATIONS PROVIDED:
 {self.recs}
 
@@ -65,7 +68,7 @@ Return the user’s refined intent based on all of the above.
 """
         return self._call_ai(prompt)
         
-    def endConvo(self, response):
+    def endConvo(self, response, gender):
         prompt = f"""
 You are an intelligent conversation state manager for a personal fashion shopping assistant.  
 Your task is to generate a **new, updated conversation context** based on the bot's most recent response, the recommendations made, and the previous conversation history.
@@ -83,6 +86,8 @@ This context will be used in the next interaction to maintain continuity of user
 **RECOMMENDATIONS GIVEN (if any):**  
 {self.recs}
 
+KNOWN GENDER:
+{gender}
 
 ---
 
