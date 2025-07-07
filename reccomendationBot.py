@@ -272,15 +272,15 @@ You are a fashion recommendation validator. Your job is to analyze if the recomm
 
 **CRITICAL RULES:**
 - Return MAXIMUM 5 product IDs
-- If NO products match well, return: "NO_MATCHES"
 - If products match but not perfectly, still include them if they're reasonable alternatives
 
 **OUTPUT FORMAT (VERY IMPORTANT):**
 Return ONLY the product IDs in this exact format:
 PROD001, PROD005, PROD012
 
-If no good matches:
-NO_MATCHES
+IF NO PRODUCT IDS FOUND RETURN:
+NO MATCHES
+
 
 **RESPONSE:**"""
 
@@ -336,7 +336,8 @@ Your task is to:
 1. Analyze the user's query and context.
 2. If the user is seeking product recommendations:
     - Identify and return a list of relevant subcategories from the provided list only
-    - Generate 8–15 associated descriptive tags that reflect the user's intent, product style, use-case, fit, vibe, season, or preferences. These will help in matching the right products.
+    - Generate 10–15 associated descriptive tags that reflect the user's intent, product style, use-case, fit, vibe, season, or preferences. These will help in matching the right products.
+    - Keep in mind that the descriptive tags will be used to search for products in the catalogue, so try to keep them single words and simple
 
 If the user is asking for general information (not product recommendations), return:
 None
@@ -394,10 +395,12 @@ Make sure to:
         sub_categories, tags = self.get_categories_product_tags(user_query, context)
         all_products = self.product_service.get_subcategory_data(sub_categories)
         return_prods = []
+        print(sub_categories, tags)
         
         for subcat in sub_categories:
             complements = []
             if subcat not in all_products.keys():
+                print(subcat)
                 continue
             prods = all_products[subcat]
             
@@ -414,8 +417,10 @@ Make sure to:
                         'tags': set(prod.get('tags')) & set(tags),
                     })
             complements.sort(key=lambda x: len(x['tags']), reverse=True)
-        
+            print("the complements are", complements)
             prod_ids = self.checkRecs(f"{user_query}", "", complements[:20])
+            
+           
             filtered_complements = [comp for comp in complements if comp['product_id'] in prod_ids][:5]
 
             return_prods.extend(filtered_complements[:4])

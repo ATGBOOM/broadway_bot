@@ -36,7 +36,7 @@ PREVIOUSLY KNOWN GENDER:
    - A **specific product-related or personal recommendation request** (e.g. "Show me red dresses", "What should I wear to a wedding?")
 
 2. If the query is **not about a personal or specific product recommendation**, or is about fashion/beauty in general:
-   → return **"Not_Needed"**
+   → return **"Not_Needed"** only is gender is None. If gender is already provided, return same gender
 
 3. If the query:
    - Clearly implies a **gender** (e.g., "for my boyfriend", "as a girl", "boxers") → return **"Male"** or **"Female"**

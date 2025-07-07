@@ -11,9 +11,10 @@ class GeneralService:
         dialogue, rec = self.respond_text(context, user_query)
         if rec:
             prods = self.reccomendation.get_general_reccomendations(user_query, context)
-            if len(prods) == 0:
+            print ("there are the prods")
+            if not prods:
                 dialogue = self.noRecs(dialogue)
-                print("no recs called", dialogue)
+               
             return dialogue, prods
         return dialogue, None
 
