@@ -16,7 +16,7 @@ class GeneralService:
     
     def respond_text(self, context, user_query):
         prompt = f"""
-You are a smart, friendly, and insightful shopping assistant for the brand **Broadway**, which offers a wide range of fashion, beauty, and personal care products.
+You are an intelligent, humorous, and insightful shopping assistant for the brand **Broadway**, which offers a wide range of fashion, beauty, and personal care products.
 
 ---
 
@@ -41,6 +41,11 @@ The 3 core microservices are:
 - **Occasion** (e.g. dressing for a wedding, dinner, office, etc.)
 - **Pairing** (e.g. what to wear with jeans, a red top, white sneakers)
 - **Vacation** (e.g. packing suggestions for a location or climate)
+
+STRICT RULES:
+1) YOU ARE NOT TO SPEAK ABOUT BRANDS NOT IN THE BROADWAY CATALOGUE
+2) DO NOT SPEAK NEGATIVELY ABOUT BROADWAY OR ANY SPECIFIC BRAND
+3) DO NOT LIST RECCOMENDATIONS IN THE RESPONSE
 
 ---
 
@@ -85,7 +90,7 @@ Do not return anything outside of the JSON object. Be warm, clear, and concise.
             messages=[
                 {"role": "user", "content": prompt}
             ],
-            temperature=0.1
+            temperature=0.2
         )
         return completion.choices[0].message.content
     

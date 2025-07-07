@@ -2,8 +2,7 @@
 from typing import Dict, List, Optional, Literal, TypedDict, Any
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.memory import MemorySaver
-import json
-import asyncio
+
 
 class FashionState(TypedDict):
     """State that flows through the LangGraph workflow"""
@@ -20,7 +19,7 @@ class FashionState(TypedDict):
     follow_up_message: Optional[str]
     confidence_score: Optional[float]
     error_message: Optional[str]
-    is_gender_loop: bool  # Track if we're in a gender question loop
+    is_gender_loop: bool  
 
 class FashionWorkflow:
     """LangGraph workflow for fashion bot conversations"""
@@ -131,7 +130,7 @@ class FashionWorkflow:
     def _process_conversation(self, state: FashionState) -> FashionState:
         """Process conversation using your existing conversation service"""
         try:
-            intent, context = self.conversation_service.processTurn(state["user_input"])
+            intent, context = self.conversation_service.processTurn(state["user_input"], state['gender'])
             state["service_mode"] = intent.lower()
             state["conversation_history"] = context
             return state
@@ -143,7 +142,7 @@ class FashionWorkflow:
         """Extract gender using your existing logic"""
         try:
             # Use your existing gender extraction logic
-            gender = self._infer_gender(state["user_input"], state["conversation_history"])
+            gender = self._infer_gender(state["user_input"], state["conversation_history"], state['gender'])
             state["gender"] = gender
             return state
         except Exception as e:
@@ -276,7 +275,11 @@ class FashionWorkflow:
     def _prepare_response(self, state: FashionState) -> FashionState:
         """Prepare WebSocket response messages"""
         messages = []
-        
+        messages.append({
+                "type": "bot_message",
+                "message": state["conversation_history"],
+                "message_type": "recommendation_intro"
+            })
         if state.get("error_message"):
             messages.append({
                 "type": "error",
@@ -322,12 +325,12 @@ class FashionWorkflow:
         
         state["websocket_messages"] = messages
         return state
-    
-    # Helper methods for routing decisions
+
     
     def _check_gender_available(self, state: FashionState) -> str:
         """Check if gender is available in the state"""
         gender = state.get("gender")
+        print(gender)
         if gender and gender.lower() in ['male', 'female', 'unisex']:
             return "gender_found"
         else:
@@ -344,9 +347,9 @@ class FashionWorkflow:
     
     # Helper methods (implement using your existing logic)
     
-    def _infer_gender(self, user_input: str, conversation_history: str) -> Optional[str]:
+    def _infer_gender(self, user_input: str, conversation_history: str, gender) -> Optional[str]:
         """Use your existing gender inference logic"""
-        return self.gender_service.getGender(conversation_history, user_input)
+        return self.gender_service.getGender(conversation_history, user_input, gender)
     
     
     def _generate_occasion_recommendations(self, state: FashionState) -> List[Dict]:
@@ -392,7 +395,7 @@ class FashionWorkflow:
             return f"Here are some recommendations for you!"
 
     def _process_bot_response(self, state : FashionState):
-        context = self.conversation_service.endTurn(state['response_message'], state['recommendations'])
+        context = self.conversation_service.endTurn(state['response_message'], state['gender'], state['recommendations'])
         state['conversation_history'] = context
         return state
 

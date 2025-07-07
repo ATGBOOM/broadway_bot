@@ -6,7 +6,7 @@ class GenderService:
         self.client = OpenAI()
         pass
 
-    def getGender(self, context, query):
+    def getGender(self, context, query, gender = None):
         
         prompt = f"""
 You are a fashion assistant helping determine the intended gender for product recommendations.
@@ -23,6 +23,8 @@ CONTEXT:
 USER INPUT:
 {query}
 
+PREVIOUSLY KNOWN GENDER: 
+{gender}
 ---
 
 Your task is to analyze the full context and determine the most appropriate gender for product recommendations.
@@ -31,7 +33,7 @@ Rules:
 - If the gender is clearly implied or mentioned → return Male or Female
 - If the product or query is clearly unisex or not gender-specific → return Unisex
 - If gender cannot be confidently determined from the information → return None
-
+- If previously known gender is provided, return the user input is requesting for a different person.
 ---
 
 Return only the gender as a single word (case-sensitive):
