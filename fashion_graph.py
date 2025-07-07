@@ -275,7 +275,7 @@ class FashionWorkflow:
         """Prepare WebSocket response messages"""
         messages = []
         messages.append({
-                "type": "bot_message",
+                "type": "intent",
                 "message": state["conversation_history"],
                 "message_type": "recommendation_intro"
             })

@@ -69,7 +69,7 @@ except Exception as e:
 chat_sessions: Dict[str, ChatSession] = {}
 conversation_history: Dict[str, list] = {}
 
-def save_feedback(client_id: str, user_input: str, bot_response: str, feedback_type: str):
+def save_feedback(client_id: str, user_input: str, bot_response: str, bot_intent: str, feedback_type: str):
     """Save feedback to JSON file"""
     try:
         global feedback_data
@@ -79,6 +79,7 @@ def save_feedback(client_id: str, user_input: str, bot_response: str, feedback_t
             "client_id": client_id,
             "user_input": user_input,
             "bot_response": bot_response,
+            "bot_intent": bot_intent,
             "feedback_type": feedback_type,
             "timestamp": datetime.now().isoformat()
         }
@@ -86,7 +87,7 @@ def save_feedback(client_id: str, user_input: str, bot_response: str, feedback_t
         feedback_data.append(new_feedback)
         save_feedback_to_file(feedback_data)
         
-        print(f"✅ Feedback saved: {feedback_type} for client {client_id}")
+        print(f"✅ Feedback saved: {feedback_type} for client {client_id}, intent: {bot_intent}")
     except Exception as e:
         print(f"❌ Error saving feedback: {e}")
 
@@ -138,6 +139,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                             client_id=client_id,
                             user_input=entry.get("user_input", ""),
                             bot_response=entry.get("bot_response", ""),
+                            bot_intent=entry.get("bot_intent", "unknown"),
                             feedback_type=feedback_type
                         )
                         
@@ -189,6 +191,7 @@ async def process_user_input_new(websocket: WebSocket, session: ChatSession, use
         
         # Store conversation for feedback
         bot_response = ""
+        bot_intent = ""
         message_id = f"bot_{len(conversation_history[client_id])}"
         
         # Send all messages and collect bot response
@@ -197,12 +200,19 @@ async def process_user_input_new(websocket: WebSocket, session: ChatSession, use
                 bot_response += message.get("message", "")
                 message["message_id"] = message_id
                 message["show_feedback"] = True
+            elif message.get("type") == "intent":
+                bot_intent = message.get("message", "unknown")
+                print(message, bot_intent)
+                # Send intent message to client for display
+                await websocket.send_text(json.dumps(message))
+                continue
             await websocket.send_text(json.dumps(message))
         
         # Store in conversation history
         conversation_history[client_id].append({
             "user_input": user_input,
             "bot_response": bot_response,
+            "bot_intent": bot_intent,
             "bot_message_id": message_id,
             "timestamp": datetime.now().isoformat()
         })
@@ -240,6 +250,7 @@ async def get_chat_interface():
         .typing { color: #666; font-style: italic; background: #f9f9f9; }
         .debug { background: #fff3cd; font-size: 12px; color: #856404; }
         .error { background: #f8d7da; color: #721c24; }
+        .intent { background: #e3f2fd; color: #1976d2; font-size: 11px; padding: 4px 8px; border-radius: 12px; margin-bottom: 8px; border-left: 3px solid #2196f3; }
         
         /* Feedback buttons */
         .feedback-buttons { 
@@ -323,6 +334,10 @@ async def get_chat_interface():
                     break;
                 case 'bot_message':
                     addMessage(data.message, 'bot-message', data.message_id, data.show_feedback);
+                    break;
+                case 'intent':
+                    // Show intent in the chat
+                    addMessage(`🎯 Intent: ${data.message}`, 'intent');
                     break;
                 case 'typing':
                     addMessage(data.message, 'typing');
