@@ -152,6 +152,7 @@ class FashionWorkflow:
     def _ask_for_gender(self, state: FashionState) :
         """Ask user to specify their gender"""
         # Set a flag to indicate we're asking for gender
+        print("asking for gender")
         state["is_gender_loop"] = True
         state["response_message"] = "I'd like to provide you with more personalized recommendations. Could you please let me know if this is for a man or woman"
         return state
@@ -176,9 +177,7 @@ class FashionWorkflow:
             confidence_score = self.occasion_service.get_confidence_score(parameters)
             state["confidence_score"] = confidence_score
             
-            occasion = parameters.get('core_parameters', {}).get('occasion') is not None
-            
-            if not state["gender"] or not occasion:
+            if not state["gender"]:
                 state["follow_up_needed"] = True
                 state["follow_up_message"] = "Could you tell me more about the occasion and whether this is for men or women?"
             else:
@@ -330,15 +329,17 @@ class FashionWorkflow:
     def _check_gender_available(self, state: FashionState) -> str:
         """Check if gender is available in the state"""
         gender = state.get("gender")
-        print(gender)
-        if gender and gender.lower() in ['male', 'female', 'unisex']:
+       
+        if gender and gender.lower() in ['male', 'female', 'unisex', 'not_needed']:
+            print(gender)
             return "gender_found"
         else:
-
+            print("gender missing")
             return "gender_missing"
     
     def _decide_service_route(self, state: FashionState) -> str:
         """Decide which service to route to"""
+        
         return state.get("service_mode", "general")
     
     def _check_followup_needed(self, state: FashionState) -> str:

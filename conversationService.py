@@ -28,27 +28,44 @@ class ConversationService:
     
     def addToConversation(self, user_input, gender):
         print("conversation given to add bot", self.conversation_context)
+        print("gender given to add convo bot", gender)
         prompt = f"""
-You are a smart assistant helping interpret user requests for fashion and product recommendations.
+You are a smart, context-aware assistant helping interpret user requests for fashion, beauty, and product recommendations.
 
 You are given:
-- The previous **conversation context** between the assistant and user
+- The ongoing **conversation context** between the assistant and the user
 - The latest **user query**
-- A list of previously provided **recommendations**
-
-Your task:
-- Carefully analyze the user query in the context of the prior conversation and recommendations
-- Determine the user's **true intent**
-- If the new input continues the same topic, asks for clarification, provides more detail, or logically builds on the previous conversation it is related
-- If the input starts a completely new topic or switches to something unrelated, it is unrelated
-- Return a **clear, concise, and structured** natural-language summary of what the user wants, so that downstream services can respond accurately.
-
-This summary should:
-- Be written in complete sentences
-- Capture any relevant details such as location, weather, product preferences, or reference to previous recommendations
-- Be **actionable** and easy to pass into other services
+- The **user’s known gender** (if any)
+- A list of **previous recommendations** already shown
 
 ---
+
+Your primary aim is to create a context for the conversation between the user and the bot. To do this you can follow the following steps :-
+1. Analyze the user's **latest message** as the primary focus.
+2. Reference the **prior conversation context** and **past recommendations** only if they clarify or enrich the user’s intent.
+3. Determine whether the latest message:
+   - Continues or elaborates on the same topic (→ related)
+   - Introduces a new topic or switches direction (→ unrelated)
+4. Summarize the **user’s current intent** in **clear, structured natural language** for downstream microservices to act on.
+
+---
+
+### Your Output:
+Return a **concise natural-language sentences ** that clearly states what the user is asking for **right now**, incorporating relevant supporting information only if it enhances clarity.
+
+📝 **Your summary should**:
+- Be complete, readable, and contextually aware
+- Mention any **specific products, weather, location, occasions, pairing needs**, or references to prior items
+- Be immediately **actionable** by microservices (e.g., vacation outfit planner, product matcher, pairing assistant)
+- Include gender if provided for better reccomendations
+
+🛑 Do NOT:
+- Repeat the entire conversation or recommendations
+- Speculate beyond what the user has reasonably implied
+
+---
+
+### Inputs
 
 CONVERSATION CONTEXT:
 {self.conversation_context}
@@ -56,7 +73,7 @@ CONVERSATION CONTEXT:
 USER QUERY:
 {user_input}
 
-USERS KNOWN GENDER:
+USER'S KNOWN GENDER:
 {gender}
 
 RECOMMENDATIONS PROVIDED:
@@ -64,8 +81,10 @@ RECOMMENDATIONS PROVIDED:
 
 ---
 
-Return the user’s refined intent based on all of the above.
+### Final Output:
+Return only the refined, context-aware **intent summary** below:
 """
+
         return self._call_ai(prompt)
         
     def endConvo(self, response, gender):
@@ -94,6 +113,7 @@ KNOWN GENDER:
 **YOUR TASK:**  
 Summarize and update the context to include only relevant information for the next turn. This includes:
 - Updated user goals or preferences
+- The users gender
 - Items or tags mentioned (e.g., floral shirt, beachwear)
 - Inferred or explicitly stated parameters (e.g., gender, budget, occasion, colors, product types)
 - Any follow-up intent (e.g., user liked something, asked for variations, changed direction)

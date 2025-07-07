@@ -191,7 +191,10 @@ If **important information** is missing (especially `gender`), or if you need mo
             messages=[
                 {"role": "user", "content": prompt}
             ],
-            temperature=0.1
+            temperature=0.3,
+            top_p=1,
+            frequency_penalty=0,
+          
         )
         return completion.choices[0].message.content
     

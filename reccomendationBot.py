@@ -323,7 +323,8 @@ NO_MATCHES
 
     def get_categories_product_tags(self, user_input, context):
         
-        subcategory_keys = self.product_service.get_subcategories_available().get("subcategories").keys()
+        subcategory_keys = list(self.product_service.get_subcategories_available().get("subcategories").keys())
+
         prompt = f""""
 USER QUERY: {user_input}
 CONTEXT: {context}
@@ -379,7 +380,10 @@ Make sure to:
         try:
             completion = self.client.chat.completions.create(
                 model="gpt-4o-mini",
-                messages=[{"role": "user", "content": prompt}]
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.3,
+                top_p=1,
+                frequency_penalty=0,
             )
             return completion.choices[0].message.content
         except Exception as e:
@@ -393,6 +397,8 @@ Make sure to:
         
         for subcat in sub_categories:
             complements = []
+            if subcat not in all_products.keys():
+                continue
             prods = all_products[subcat]
             
             for prod in prods:
