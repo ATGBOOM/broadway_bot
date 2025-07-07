@@ -6,6 +6,7 @@ import os
 from typing import Dict, Any
 from datetime import datetime
 from pathlib import Path
+import asyncpg
 
 # Your existing imports
 from occasionService import OccasionService
@@ -21,11 +22,14 @@ from fashion_graph import ChatSession
 
 app = FastAPI(title="Broadway Fashion Bot WebSocket")
 
-# Initialize JSON file for feedback
+# Database setup
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+# JSON fallback setup
 FEEDBACK_FILE = "feedback.json"
 
 def load_feedback():
-    """Load existing feedback from JSON file"""
+    """Load existing feedback from JSON file (fallback)"""
     if Path(FEEDBACK_FILE).exists():
         try:
             with open(FEEDBACK_FILE, 'r', encoding='utf-8') as f:
@@ -36,15 +40,152 @@ def load_feedback():
     return []
 
 def save_feedback_to_file(feedback_list):
-    """Save feedback list to JSON file"""
+    """Save feedback list to JSON file (fallback)"""
     try:
         with open(FEEDBACK_FILE, 'w', encoding='utf-8') as f:
             json.dump(feedback_list, f, indent=2, ensure_ascii=False)
     except Exception as e:
         print(f"Error saving feedback file: {e}")
 
-# Load existing feedback on startup
+# Load existing feedback on startup (fallback)
 feedback_data = load_feedback()
+
+async def init_postgres():
+    """Initialize PostgreSQL connection and tables"""
+    if not DATABASE_URL:
+        print("❌ No DATABASE_URL found. Using JSON fallback.")
+        return False
+    
+    try:
+        conn = await asyncpg.connect(DATABASE_URL)
+        
+        # Create feedback table
+        await conn.execute('''
+            CREATE TABLE IF NOT EXISTS feedback (
+                id SERIAL PRIMARY KEY,
+                client_id TEXT NOT NULL,
+                user_input TEXT NOT NULL,
+                bot_response TEXT NOT NULL,
+                bot_intent TEXT NOT NULL,
+                feedback_type TEXT NOT NULL,
+                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        
+        await conn.close()
+        print("✅ PostgreSQL feedback table initialized")
+        return True
+    except Exception as e:
+        print(f"❌ Error initializing PostgreSQL: {e}")
+        return False
+
+async def save_feedback_postgres(client_id: str, user_input: str, bot_response: str, bot_intent: str, feedback_type: str):
+    """Save feedback to PostgreSQL"""
+    try:
+        conn = await asyncpg.connect(DATABASE_URL)
+        
+        await conn.execute('''
+            INSERT INTO feedback (client_id, user_input, bot_response, bot_intent, feedback_type)
+            VALUES ($1, $2, $3, $4, $5)
+        ''', client_id, user_input, bot_response, bot_intent, feedback_type)
+        
+        await conn.close()
+        print(f"✅ Feedback saved to PostgreSQL: {feedback_type} for client {client_id}, intent: {bot_intent}")
+        return True
+    except Exception as e:
+        print(f"❌ Error saving to PostgreSQL: {e}")
+        return False
+
+async def get_feedback_postgres():
+    """Get all feedback from PostgreSQL"""
+    try:
+        conn = await asyncpg.connect(DATABASE_URL)
+        
+        rows = await conn.fetch('''
+            SELECT id, client_id, user_input, bot_response, bot_intent, feedback_type, timestamp
+            FROM feedback
+            ORDER BY timestamp DESC
+        ''')
+        
+        await conn.close()
+        
+        feedback_list = []
+        for row in rows:
+            feedback_list.append({
+                "id": row['id'],
+                "client_id": row['client_id'],
+                "user_input": row['user_input'],
+                "bot_response": row['bot_response'],
+                "bot_intent": row['bot_intent'],
+                "feedback_type": row['feedback_type'],
+                "timestamp": row['timestamp'].isoformat()
+            })
+        
+        return feedback_list
+    except Exception as e:
+        print(f"❌ Error getting feedback from PostgreSQL: {e}")
+        return []
+
+async def get_feedback_stats_postgres():
+    """Get feedback statistics from PostgreSQL"""
+    try:
+        conn = await asyncpg.connect(DATABASE_URL)
+        
+        rows = await conn.fetch('''
+            SELECT feedback_type, COUNT(*) as count
+            FROM feedback
+            GROUP BY feedback_type
+        ''')
+        
+        await conn.close()
+        
+        stats = {}
+        for row in rows:
+            stats[row['feedback_type']] = row['count']
+        
+        return stats
+    except Exception as e:
+        print(f"❌ Error getting stats from PostgreSQL: {e}")
+        return {}
+
+async def save_feedback(client_id: str, user_input: str, bot_response: str, bot_intent: str, feedback_type: str):
+    """Save feedback - try PostgreSQL first, fallback to JSON"""
+    
+    # Try PostgreSQL first
+    if DATABASE_URL:
+        success = await save_feedback_postgres(client_id, user_input, bot_response, bot_intent, feedback_type)
+        if success:
+            return
+    
+    # Fallback to JSON file
+    try:
+        global feedback_data
+        
+        new_feedback = {
+            "id": len(feedback_data) + 1,
+            "client_id": client_id,
+            "user_input": user_input,
+            "bot_response": bot_response,
+            "bot_intent": bot_intent,
+            "feedback_type": feedback_type,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        feedback_data.append(new_feedback)
+        save_feedback_to_file(feedback_data)
+        
+        print(f"✅ Feedback saved to JSON: {feedback_type} for client {client_id}, intent: {bot_intent}")
+    except Exception as e:
+        print(f"❌ Error saving feedback: {e}")
+
+# Initialize on startup
+@app.on_event("startup")
+async def startup():
+    if DATABASE_URL:
+        await init_postgres()
+        print("✅ Using PostgreSQL for feedback storage")
+    else:
+        print("ℹ️ Using JSON file for feedback storage")
 
 # Your existing service initialization
 api_key = os.getenv('OPENAI_API_KEY')
@@ -68,28 +209,6 @@ except Exception as e:
 # Store active chat sessions and conversation history
 chat_sessions: Dict[str, ChatSession] = {}
 conversation_history: Dict[str, list] = {}
-
-def save_feedback(client_id: str, user_input: str, bot_response: str, bot_intent: str, feedback_type: str):
-    """Save feedback to JSON file"""
-    try:
-        global feedback_data
-        
-        new_feedback = {
-            "id": len(feedback_data) + 1,
-            "client_id": client_id,
-            "user_input": user_input,
-            "bot_response": bot_response,
-            "bot_intent": bot_intent,
-            "feedback_type": feedback_type,
-            "timestamp": datetime.now().isoformat()
-        }
-        
-        feedback_data.append(new_feedback)
-        save_feedback_to_file(feedback_data)
-        
-        print(f"✅ Feedback saved: {feedback_type} for client {client_id}, intent: {bot_intent}")
-    except Exception as e:
-        print(f"❌ Error saving feedback: {e}")
 
 @app.websocket("/ws/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: str):
@@ -135,7 +254,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                 history = conversation_history[client_id]
                 for i, entry in enumerate(history):
                     if entry.get("bot_message_id") == message_id:
-                        save_feedback(
+                        await save_feedback(
                             client_id=client_id,
                             user_input=entry.get("user_input", ""),
                             bot_response=entry.get("bot_response", ""),
@@ -202,7 +321,6 @@ async def process_user_input_new(websocket: WebSocket, session: ChatSession, use
                 message["show_feedback"] = True
             elif message.get("type") == "intent":
                 bot_intent = message.get("message", "unknown")
-                print(message, bot_intent)
                 # Send intent message to client for display
                 await websocket.send_text(json.dumps(message))
                 continue
@@ -223,6 +341,79 @@ async def process_user_input_new(websocket: WebSocket, session: ChatSession, use
             "type": "error",
             "message": f"Sorry, I encountered an error: {str(e)}"
         }))
+
+# Updated API endpoints
+@app.get("/feedback")
+async def get_feedback():
+    """Get all feedback data"""
+    try:
+        if DATABASE_URL:
+            feedback_list = await get_feedback_postgres()
+            return {
+                "total_feedback": len(feedback_list),
+                "feedback": feedback_list,
+                "source": "postgresql"
+            }
+        else:
+            return {
+                "total_feedback": len(feedback_data),
+                "feedback": feedback_data,
+                "source": "json"
+            }
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.get("/feedback/stats")
+async def get_feedback_stats():
+    """Get feedback statistics"""
+    try:
+        if DATABASE_URL:
+            stats = await get_feedback_stats_postgres()
+            return {
+                "stats": stats,
+                "total": sum(stats.values()),
+                "source": "postgresql"
+            }
+        else:
+            stats = {}
+            for item in feedback_data:
+                feedback_type = item.get("feedback_type", "unknown")
+                stats[feedback_type] = stats.get(feedback_type, 0) + 1
+            
+            return {
+                "stats": stats,
+                "total": len(feedback_data),
+                "source": "json"
+            }
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.get("/db-status")
+async def db_status():
+    """Check database connection status"""
+    if not DATABASE_URL:
+        return {
+            "database": "Not configured",
+            "status": "Using JSON fallback",
+            "database_url_exists": False
+        }
+    
+    try:
+        conn = await asyncpg.connect(DATABASE_URL)
+        await conn.execute("SELECT 1")
+        await conn.close()
+        
+        return {
+            "database": "PostgreSQL",
+            "status": "Connected",
+            "database_url_exists": True
+        }
+    except Exception as e:
+        return {
+            "database": "PostgreSQL",
+            "status": f"Connection failed: {str(e)}",
+            "database_url_exists": True
+        }
 
 @app.get("/")
 async def get_chat_interface():
@@ -479,33 +670,6 @@ async def get_chat_interface():
 </body>
 </html>
     """)
-
-@app.get("/feedback")
-async def get_feedback():
-    """Get all feedback data"""
-    try:
-        return {
-            "total_feedback": len(feedback_data),
-            "feedback": feedback_data
-        }
-    except Exception as e:
-        return {"error": str(e)}
-
-@app.get("/feedback/stats")
-async def get_feedback_stats():
-    """Get feedback statistics"""
-    try:
-        stats = {}
-        for item in feedback_data:
-            feedback_type = item.get("feedback_type", "unknown")
-            stats[feedback_type] = stats.get(feedback_type, 0) + 1
-        
-        return {
-            "stats": stats,
-            "total": len(feedback_data)
-        }
-    except Exception as e:
-        return {"error": str(e)}
 
 @app.get("/debug")
 async def debug_environment():
