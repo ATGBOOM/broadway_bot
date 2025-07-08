@@ -16,7 +16,7 @@ from vacationService import VacationService
 from conversationService import ConversationService
 from generalService import GeneralService
 from genderService import GenderService
-
+from looksGoodOnMeService import LooksGoodOnMeService
 # NEW: Import LangGraph integration
 from fashion_graph import ChatSession
 
@@ -201,6 +201,7 @@ try:
     pairing_service = PairingService()
     vacation_service = VacationService()
     general_service = GeneralService()
+    styling_service = LooksGoodOnMeService()
     print("✅ Services initialized successfully")
 except Exception as e:
     print(f"❌ Error initializing services: {e}")
@@ -209,6 +210,53 @@ except Exception as e:
 # Store active chat sessions and conversation history
 chat_sessions: Dict[str, ChatSession] = {}
 conversation_history: Dict[str, list] = {}
+user_states: Dict[str, str] = {}  # Track user's current state
+
+# Service examples mapping
+SERVICE_EXAMPLES = {
+    "1": {
+        "name": "Occasion Service",
+        "description": "Get outfit recommendations for specific events and occasions",
+        "examples": [
+            "I have a wedding to attend next month",
+            "What should I wear to a job interview?",
+            "I need an outfit for a dinner date",
+            "Help me dress for a business meeting",
+            "What's appropriate for a casual brunch?"
+        ]
+    },
+    "2": {
+        "name": "Vacation Service", 
+        "description": "Plan your travel wardrobe based on destination and activities",
+        "examples": [
+            "I'm going to Paris for a week in summer",
+            "Planning a beach vacation in Goa",
+            "What to pack for a ski trip to Switzerland?",
+            "Business trip to New York in winter",
+            "Backpacking through Southeast Asia"
+        ]
+    },
+    "3": {
+        "name": "Pairing Service",
+        "description": "Get suggestions on what goes well with items you already own",
+        "examples": [
+            "What goes well with my black leather jacket?",
+            "I have a red dress, what shoes should I wear?",
+            "How can I style my white sneakers?",
+            "What bottoms go with this striped top?",
+            "Accessories to pair with my navy blazer?"
+        ]
+    },
+    "4": {
+        "name": "Styling Service",
+        "description": "Personal styling advice based on your preferences and body type",
+        "examples": [
+            "Would green jackets look good on me with warm skin tone?",
+            "what color dresses are for an hourglass body shape?",
+            "Would a red dress look good on me for my birthday?",
+        ]
+    }
+}
 
 @app.websocket("/ws/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: str):
@@ -222,20 +270,33 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
         'vacation': VacationService(),
         'conversation': ConversationService(),
         'general': GeneralService(),
-        'gender' : GenderService()
+        'gender' : GenderService(),
+        'styling' : LooksGoodOnMeService()
     }
     
     if client_id not in chat_sessions:
         chat_sessions[client_id] = ChatSession(services_dict)
         chat_sessions[client_id].client_id = client_id
         conversation_history[client_id] = []
+        user_states[client_id] = "menu"  # Start with menu state
     
     session = chat_sessions[client_id]
     
-    # Send initial message
+    # Send initial menu message
+    initial_message = """👋 Welcome to Broadway Fashion! I'm here to help you find the perfect outfit.
+
+Please choose which service you'd like to try:
+
+1️⃣ **Occasion Service** - Get outfit recommendations for specific events
+2️⃣ **Vacation Service** - Plan your travel wardrobe  
+3️⃣ **Pairing Service** - Style items you already own
+4️⃣ **Styling Service** - Personal styling advice
+
+Just type **1**, **2**, **3**, or **4** to get started!"""
+    
     await websocket.send_text(json.dumps({
         "type": "bot_message",
-        "message": "👋 Welcome to Broadway Fashion! I'm here to help you find the perfect outfit. What would you like help with today?",
+        "message": initial_message,
         "timestamp": asyncio.get_event_loop().time(),
         "message_id": f"bot_{len(conversation_history[client_id])}"
     }))
@@ -283,8 +344,8 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                 "timestamp": asyncio.get_event_loop().time()
             }))
             
-            # Process with new LangGraph function
-            await process_user_input_new(websocket, session, user_input, client_id)
+            # Handle user input based on current state
+            await handle_user_input_with_state(websocket, session, user_input, client_id)
             
     except WebSocketDisconnect:
         print(f"Client {client_id} disconnected")
@@ -292,8 +353,89 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
             del chat_sessions[client_id]
         if client_id in conversation_history:
             del conversation_history[client_id]
+        if client_id in user_states:
+            del user_states[client_id]
     except Exception as e:
         print(f"WebSocket error: {e}")
+
+async def handle_user_input_with_state(websocket: WebSocket, session: ChatSession, user_input: str, client_id: str):
+    """Handle user input based on current state (menu vs normal chat)"""
+    
+    current_state = user_states.get(client_id, "menu")
+    
+    # If user is in menu state, check for service selection
+    if current_state == "menu":
+        if user_input in ["1", "2", "3", "4"]:
+            await handle_service_selection(websocket, user_input, client_id)
+            return
+        elif user_input.lower() in ["menu", "back", "main menu", "start over"]:
+            await show_main_menu(websocket, client_id)
+            return
+        else:
+            # User didn't select a valid option, show menu again
+            await websocket.send_text(json.dumps({
+                "type": "bot_message",
+                "message": "Please choose a valid option by typing 1, 2, 3, or 4, or type 'menu' to see the options again.",
+                "timestamp": asyncio.get_event_loop().time(),
+                "message_id": f"bot_{len(conversation_history[client_id])}"
+            }))
+            return
+    
+    # Handle special commands in any state
+    if user_input.lower() in ["menu", "back", "main menu", "start over"]:
+        await show_main_menu(websocket, client_id)
+        return
+    
+    # Normal chat processing
+    await process_user_input_new(websocket, session, user_input, client_id)
+
+async def show_main_menu(websocket: WebSocket, client_id: str):
+    """Show the main service selection menu"""
+    user_states[client_id] = "menu"
+    
+    menu_message = """🏠 **Main Menu** - Choose a service to try:
+
+1️⃣ **Occasion Service** - Get outfit recommendations for specific events
+2️⃣ **Vacation Service** - Plan your travel wardrobe  
+3️⃣ **Pairing Service** - Style items you already own
+4️⃣ **Styling Service** - Personal styling advice
+
+Type **1**, **2**, **3**, or **4** to get started!"""
+    
+    await websocket.send_text(json.dumps({
+        "type": "bot_message",
+        "message": menu_message,
+        "timestamp": asyncio.get_event_loop().time(),
+        "message_id": f"bot_{len(conversation_history[client_id])}"
+    }))
+
+async def handle_service_selection(websocket: WebSocket, selection: str, client_id: str):
+    """Handle when user selects a service (1-4)"""
+    
+    service_info = SERVICE_EXAMPLES[selection]
+    user_states[client_id] = "chat"  # Switch to chat state
+    
+    examples_text = "\n".join([f"• {example}" for example in service_info["examples"]])
+    
+    response_message = f"""Great choice! You've selected the **{service_info['name']}** ✨
+
+{service_info['description']}
+
+Here are some example prompts you can try:
+
+{examples_text}
+
+You can also ask me anything related to this service, or type **'menu'** anytime to return to the main menu.
+
+What would you like help with?"""
+    
+    await websocket.send_text(json.dumps({
+        "type": "bot_message",
+        "message": response_message,
+        "timestamp": asyncio.get_event_loop().time(),
+        "message_id": f"bot_{len(conversation_history[client_id])}",
+        "show_feedback": True
+    }))
 
 async def process_user_input_new(websocket: WebSocket, session: ChatSession, user_input: str, client_id: str):
     """New process function using LangGraph"""
@@ -443,6 +585,45 @@ async def get_chat_interface():
         .error { background: #f8d7da; color: #721c24; }
         .intent { background: #e3f2fd; color: #1976d2; font-size: 11px; padding: 4px 8px; border-radius: 12px; margin-bottom: 8px; border-left: 3px solid #2196f3; }
         
+        /* Menu buttons */
+        .menu-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        .menu-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .menu-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .quick-actions {
+            margin-top: 10px;
+            text-align: center;
+        }
+        .quick-action-btn {
+            background: #f0f0f0;
+            border: 1px solid #ddd;
+            padding: 6px 12px;
+            margin: 2px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        .quick-action-btn:hover {
+            background: #e0e0e0;
+        }
+        
         /* Feedback buttons */
         .feedback-buttons { 
             display: flex; 
@@ -491,8 +672,15 @@ async def get_chat_interface():
         </div>
         <div class="chat-messages" id="messages"></div>
         <div class="chat-input-container">
-            <input type="text" id="messageInput" class="chat-input" placeholder="Choose 1, 2, or 3, or describe what you're looking for..." onkeypress="handleKeyPress(event)">
+            <input type="text" id="messageInput" class="chat-input" placeholder="Type 1, 2, 3, 4 to select a service, or describe what you're looking for..." onkeypress="handleKeyPress(event)">
             <button class="send-button" onclick="sendMessage()">Send</button>
+        </div>
+        <div class="quick-actions">
+            <button class="quick-action-btn" onclick="sendQuickMessage('menu')">🏠 Main Menu</button>
+            <button class="quick-action-btn" onclick="sendQuickMessage('1')">1️⃣ Occasions</button>
+            <button class="quick-action-btn" onclick="sendQuickMessage('2')">2️⃣ Vacation</button>
+            <button class="quick-action-btn" onclick="sendQuickMessage('3')">3️⃣ Pairing</button>
+            <button class="quick-action-btn" onclick="sendQuickMessage('4')">4️⃣ Styling</button>
         </div>
     </div>
 
@@ -659,6 +847,12 @@ async def get_chat_interface():
             }
         }
         
+        function sendQuickMessage(message) {
+            if (socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({ message: message }));
+            }
+        }
+        
         function handleKeyPress(event) {
             if (event.key === 'Enter') {
                 sendMessage();
@@ -668,22 +862,7 @@ async def get_chat_interface():
         window.onload = initWebSocket;
     </script>
 </body>
-</html>
-    """)
-
-@app.get("/debug")
-async def debug_environment():
-    """Debug endpoint"""
-    api_key = os.getenv('OPENAI_API_KEY')
-    return {
-        "api_key_exists": bool(api_key),
-        "api_key_length": len(api_key) if api_key else 0,
-        "environment_vars": list(os.environ.keys())
-    }
-
-@app.get("/health")
-async def health_check():
-    return {"status": "healthy", "service": "Broadway Fashion Bot WebSocket"}
+</html>""")
 
 if __name__ == "__main__":
     import uvicorn

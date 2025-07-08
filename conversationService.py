@@ -10,7 +10,8 @@ class ConversationService:
         self.intents = [
             'Occasion',
             'Pairing',
-            'Vacation'
+            'Vacation',
+            'Stlying'
         ]
     
     def processTurn(self, user_input, gender, intent = "general"):
@@ -168,6 +169,10 @@ Based on your analysis, choose **ONLY ONE** of the following intents.
     * **Trigger Keywords:** "what goes with," "how to style," "shoes for this dress," "what top for these jeans," "need a bag to match my boots."
     * **Example:** User was shopping for an occasion. Current input is "I just bought these black jeans, what kind of tops would go well with them?" -> **Pairing**.
 
+**"Styling"**
+* **Description:** The user is seeking validation, styling advice, or compatibility assessment for a specific clothing item. They want to know if something suits them personally based on their body type, skin tone, style preferences, or the occasion. This is focused on personal fit and styling analysis rather than finding new products.
+* **Trigger Keywords:** "looks good on me," "suit me," "flattering," "does this work," "will this look good," "is this right for me," "does this fit my style," "appropriate for my body type," "complements my skin tone," "should I wear this," "does this make me look," "styling advice," "how do I look."
+    
 * **"General"**
     * **Description:** The user's request is broad, ambiguous, or doesn't fit any of the other categories. This intent signals that follow-up questions are needed to clarify their goal.
     * **Trigger Keywords:** "show me some shirts," "looking for shoes," "any new arrivals?," "I'm bored, show me something cool."
