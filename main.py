@@ -743,13 +743,6 @@ async def get_chat_interface():
             <input type="text" id="messageInput" class="chat-input" placeholder="Describe what you're looking for, or use the service buttons above..." onkeypress="handleKeyPress(event)">
             <button class="send-button" onclick="sendMessage()">Send</button>
         </div>
-        <div class="quick-actions">
-            <button class="quick-action-btn" onclick="sendQuickMessage('menu')">🏠 Main Menu</button>
-            <button class="quick-action-btn" onclick="sendQuickMessage('1')">1️⃣ Occasions</button>
-            <button class="quick-action-btn" onclick="sendQuickMessage('2')">2️⃣ Vacation</button>
-            <button class="quick-action-btn" onclick="sendQuickMessage('3')">3️⃣ Pairing</button>
-            <button class="quick-action-btn" onclick="sendQuickMessage('4')">4️⃣ Styling</button>
-        </div>
     </div>
 
     <script>
