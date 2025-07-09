@@ -473,9 +473,9 @@ class FashionWorkflow:
         required_fields = ['body_type', 'skin_tone', 'height', 'style_preferences', 'size_preferences']
         print("check followup for styles")
         missing_fields = [field for field in required_fields if not user_info.get(field)]
-        
+        print(user_info)
         if len(required_fields) - len(missing_fields) < 2:
-            print("there are missing fields")
+      
             return 'followup'
         
         return 'complete'

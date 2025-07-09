@@ -301,6 +301,7 @@ Please choose which service you'd like to try, or just start chatting about what
             data = await websocket.receive_text()
             message_data = json.loads(data)
             
+            print("message received =", message_data)
             # Handle feedback
             if message_data.get("type") == "feedback":
                 message_id = message_data.get("message_id")
@@ -707,14 +708,11 @@ async def get_chat_interface():
             border: 1px solid #ddd;
             border-radius: 6px;
             padding: 10px;
-            cursor: pointer;
+       
             transition: all 0.2s;
             font-size: 14px;
         }
-        .example-prompt:hover {
-            background: #f0f0f0;
-            border-color: #667eea;
-        }
+       
         
         /* Followup questions */
         .followup-container {
@@ -1014,7 +1012,7 @@ async def get_chat_interface():
             
             examples.forEach(example => {
                 html += `
-                    <div class="example-prompt" onclick="sendQuickMessage('${example.replace(/'/g, "\\'")}')">
+                    <div class="example-prompt" >
                         ${example}
                     </div>
                 `;
@@ -1061,8 +1059,22 @@ async def get_chat_interface():
         }
         
         function submitFollowup() {
-            const form = document.querySelector('.followup-form');
+            const forms = document.querySelectorAll('.followup-form');
+            let form = null;
+            
+            // Get the most recent form or find the active one
+            if (forms.length > 0) {
+                form = forms[forms.length - 1]; // Get the last form
+            }
+            
+            if (!form) {
+                console.error('No followup form found');
+                return;
+            }
+            
+            // ✅ ADD THIS LINE - Get inputs from the selected form
             const inputs = form.querySelectorAll('select, input[type="text"]');
+            
             const responses = {};
             
             inputs.forEach(input => {
