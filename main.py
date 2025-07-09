@@ -251,9 +251,9 @@ SERVICE_EXAMPLES = {
         "name": "Styling Service",
         "description": "Personal styling advice based on your preferences and body type",
         "examples": [
-            "Would green jackets look good on me with warm skin tone?",
-            "what color dresses are for an hourglass body shape?",
-            "Would a red dress look good on me for my birthday?",
+            "Would green jackets look good on me?",
+            "what color dresses would look good on me?",
+            "Would a red dress look good on me?",
         ]
     }
 }
