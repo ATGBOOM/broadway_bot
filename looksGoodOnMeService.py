@@ -202,6 +202,7 @@ Please provide a comprehensive styling analysis including specific styling tips 
                 }
                 
             # Prepare input for the analysis chain
+            print("looks good on me bot", user_input, user_info, conversation_context)
             chain_input = {
                 "user_input": user_input,
                 "conversation_context": conversation_context,
@@ -214,7 +215,8 @@ Please provide a comprehensive styling analysis including specific styling tips 
                 "lifestyle": user_info.get("lifestyle", "not specified"),
                 "occasion_context": user_info.get("current_occasion", "general wear"),
                 "size_preferences": user_info.get("size_preferences", "regular fit"),
-                
+                "gender" : user_info.get("gender", "unknown"),
+
                 # Product information (with defaults)
                 "product_type": product_details.get("type", "clothing item"),
                 "product_color": product_details.get("color", "not specified"),

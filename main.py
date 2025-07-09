@@ -326,7 +326,46 @@ Please choose which service you'd like to try, or just start chatting about what
                         }))
                         break
                 continue
-            
+            # Handle followup responses
+            if message_data.get("type") == "followup_response":
+                followup_responses = message_data.get("responses", {})
+                
+
+                #previous_query = session.last_user_query or ""
+                query = f"Info provided for the following - {followup_responses.keys()}"
+                print("query is", query)
+                # Process with the previous query and new followup data
+                messages = await session.process_with_langgraph(
+                    user_input=query,  
+                    client_id=client_id,
+                    followup_data=followup_responses 
+                )
+                
+                # Send the response messages
+                for message in messages:
+                    if message.get("type") == "bot_message":
+                        bot_response = message.get("message", "")
+                        message_id = f"bot_{len(conversation_history[client_id])}"
+                        message["message_id"] = message_id
+                        message["show_feedback"] = True
+                    elif message.get("type") == "intent":
+                        bot_intent = message.get("message", "unknown")
+                        await websocket.send_text(json.dumps(message))
+                        continue
+                    elif message.get("type") == "followup":
+                        print("followup message in frontend", message)
+                        pass
+                    await websocket.send_text(json.dumps(message))
+                
+                # # Store in conversation history
+                # conversation_history[client_id].append({
+                #     "user_input": f"Followup for: {previous_query}",
+                #     "bot_response": bot_response,
+                #     "bot_intent": bot_intent,
+                #     "bot_message_id": message_id,
+                #     "timestamp": datetime.now().isoformat()
+                # })
+                continue
             # Handle service button clicks
             if message_data.get("type") == "service_button":
                 service_key = message_data.get("service")
@@ -494,6 +533,9 @@ async def process_user_input_new(websocket: WebSocket, session: ChatSession, use
                 # Send intent message to client for display
                 await websocket.send_text(json.dumps(message))
                 continue
+            elif message.get("type") == "followup":
+                print("followup message in frontend", message)
+                pass
             await websocket.send_text(json.dumps(message))
         
         # Store in conversation history
@@ -674,6 +716,73 @@ async def get_chat_interface():
             border-color: #667eea;
         }
         
+        /* Followup questions */
+        .followup-container {
+            background: #fff8e1;
+            border: 1px solid #ffcc02;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px 0;
+        }
+        .followup-container h3 {
+            color: #f57c00;
+            margin-top: 0;
+            margin-bottom: 15px;
+        }
+        .followup-form {
+            display: grid;
+            gap: 15px;
+        }
+        .followup-question {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        .followup-question label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: #333;
+        }
+        .followup-question select,
+        .followup-question input[type="text"] {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        .followup-question select:focus,
+        .followup-question input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+        }
+        .followup-submit {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            margin-top: 10px;
+            transition: all 0.3s;
+        }
+        .followup-submit:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        .followup-submit:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
         .quick-actions {
             margin-top: 10px;
             text-align: center;
@@ -743,6 +852,13 @@ async def get_chat_interface():
             <input type="text" id="messageInput" class="chat-input" placeholder="Describe what you're looking for, or use the service buttons above..." onkeypress="handleKeyPress(event)">
             <button class="send-button" onclick="sendMessage()">Send</button>
         </div>
+        <div class="quick-actions">
+            <button class="quick-action-btn" onclick="sendQuickMessage('menu')">🏠 Main Menu</button>
+            <button class="quick-action-btn" onclick="sendQuickMessage('1')">1️⃣ Occasions</button>
+            <button class="quick-action-btn" onclick="sendQuickMessage('2')">2️⃣ Vacation</button>
+            <button class="quick-action-btn" onclick="sendQuickMessage('3')">3️⃣ Pairing</button>
+            <button class="quick-action-btn" onclick="sendQuickMessage('4')">4️⃣ Styling</button>
+        </div>
     </div>
 
     <script>
@@ -777,6 +893,9 @@ async def get_chat_interface():
                     break;
                 case 'service_examples':
                     displayServiceExamples(data.service_name, data.description, data.examples);
+                    break;
+                case 'followup':
+                    displayFollowupQuestions(data.title, data.questions);
                     break;
                 case 'intent':
                     // Show intent in the chat
@@ -906,6 +1025,67 @@ async def get_chat_interface():
             
             messagesDiv.appendChild(examplesDiv);
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+        
+        function displayFollowupQuestions(title, questions) {
+            const messagesDiv = document.getElementById('messages');
+            const followupDiv = document.createElement('div');
+            followupDiv.className = 'followup-container';
+            
+            let html = `<h3>${title}</h3><div class="followup-form">`;
+            
+            questions.forEach((question, index) => {
+                html += `<div class="followup-question">`;
+                html += `<label for="followup_${question.key}">${question.label}</label>`;
+                
+                if (question.type === 'select' && question.options) {
+                    html += `<select id="followup_${question.key}" name="${question.key}">`;
+                    html += `<option value="">Please select...</option>`;
+                    question.options.forEach(option => {
+                        html += `<option value="${option}">${option}</option>`;
+                    });
+                    html += `</select>`;
+                } else if (question.type === 'text') {
+                    html += `<input type="text" id="followup_${question.key}" name="${question.key}" placeholder="${question.placeholder || ''}" />`;
+                }
+                
+                html += `</div>`;
+            });
+            
+            html += `<button class="followup-submit" onclick="submitFollowup()">Submit Information</button>`;
+            html += `</div>`;
+            
+            followupDiv.innerHTML = html;
+            messagesDiv.appendChild(followupDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+        
+        function submitFollowup() {
+            const form = document.querySelector('.followup-form');
+            const inputs = form.querySelectorAll('select, input[type="text"]');
+            const responses = {};
+            
+            inputs.forEach(input => {
+                if (input.value.trim()) {
+                    responses[input.name] = input.value.trim();
+                }
+            });
+            
+            if (socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({
+                    type: 'followup_response',
+                    responses: responses
+                }));
+                
+                // Disable the form after submission
+                const submitBtn = form.querySelector('.followup-submit');
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Submitted ✓';
+                
+                inputs.forEach(input => {
+                    input.disabled = true;
+                });
+            }
         }
         
         function showFeedbackConfirmation(messageId, confirmationMessage) {

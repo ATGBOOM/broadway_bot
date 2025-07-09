@@ -160,7 +160,7 @@ Based on your analysis, choose **ONLY ONE** of the following intents.
     * **Example:** User was looking for sunglasses. Current input is "I'll be going to Goa next month, what else should I pack?" -> **Vacation**.
 
 * **"Occasion"**
-    * **Description:** The user needs an outfit or items for a specific event, activity, or function. This is event-driven.
+    * **Description:** The user wants to see outfits or items that generally look for a specific event, activity, or function. This is event-driven.
     * **Trigger Keywords:** "wedding," "party," "interview," "work," "office," "gym," "date night," "formal event," "concert," "festival."
     * **Example:** User was talking about a trip. Current input is "Thanks! Also, I need a dress for a friend's wedding." -> **Occasion**.
 
@@ -170,7 +170,7 @@ Based on your analysis, choose **ONLY ONE** of the following intents.
     * **Example:** User was shopping for an occasion. Current input is "I just bought these black jeans, what kind of tops would go well with them?" -> **Pairing**.
 
 **"Styling"**
-* **Description:** The user is seeking validation, styling advice, or compatibility assessment for a specific clothing item. They want to know if something suits them personally based on their body type, skin tone, style preferences, or the occasion. This is focused on personal fit and styling analysis rather than finding new products.
+* **Description:** The user is seeking validation, styling advice, or compatibility assessment for a specific clothing item or occasion. They want to know if something suits them personally based on their body type, skin tone, style preferences, or the occasion. This is focused on personal fit and styling analysis rather than finding new products.
 * **Trigger Keywords:** "looks good on me," "suit me," "flattering," "does this work," "will this look good," "is this right for me," "does this fit my style," "appropriate for my body type," "complements my skin tone," "should I wear this," "does this make me look," "styling advice," "how do I look."
     
 * **"General"**
