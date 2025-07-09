@@ -282,23 +282,18 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
     
     session = chat_sessions[client_id]
     
-    # Send initial menu message
+    # Send initial menu message with interactive buttons
     initial_message = """👋 Welcome to Broadway Fashion! I'm here to help you find the perfect outfit.
 
-Please choose which service you'd like to try:
-
-1️⃣ **Occasion Service** - Get outfit recommendations for specific events
-2️⃣ **Vacation Service** - Plan your travel wardrobe  
-3️⃣ **Pairing Service** - Style items you already own
-4️⃣ **Styling Service** - Personal styling advice
-
-Just type **1**, **2**, **3**, or **4** to get started!"""
+Please choose which service you'd like to try, or just start chatting about what you need help with:"""
     
     await websocket.send_text(json.dumps({
         "type": "bot_message",
         "message": initial_message,
         "timestamp": asyncio.get_event_loop().time(),
-        "message_id": f"bot_{len(conversation_history[client_id])}"
+        "message_id": f"bot_{len(conversation_history[client_id])}",
+        "show_service_buttons": True,
+        "services": SERVICE_EXAMPLES
     }))
     
     try:
@@ -332,6 +327,12 @@ Just type **1**, **2**, **3**, or **4** to get started!"""
                         break
                 continue
             
+            # Handle service button clicks
+            if message_data.get("type") == "service_button":
+                service_key = message_data.get("service")
+                await handle_service_button_click(websocket, service_key, client_id)
+                continue
+            
             user_input = message_data.get("message", "").strip()
             
             if not user_input:
@@ -358,6 +359,41 @@ Just type **1**, **2**, **3**, or **4** to get started!"""
     except Exception as e:
         print(f"WebSocket error: {e}")
 
+async def handle_service_button_click(websocket: WebSocket, service_key: str, client_id: str):
+    """Handle when user clicks a service button"""
+    
+    if service_key not in SERVICE_EXAMPLES:
+        return
+    
+    service_info = SERVICE_EXAMPLES[service_key]
+    user_states[client_id] = "chat"  # Switch to chat state
+    
+    # Send service selection message
+    await websocket.send_text(json.dumps({
+        "type": "bot_message",
+        "message": f"Great! You've selected the **{service_info['name']}** ✨",
+        "timestamp": asyncio.get_event_loop().time(),
+        "message_id": f"bot_{len(conversation_history[client_id])}"
+    }))
+    
+    # Send service examples
+    await websocket.send_text(json.dumps({
+        "type": "service_examples",
+        "service_name": service_info['name'],
+        "description": service_info['description'],
+        "examples": service_info['examples'],
+        "timestamp": asyncio.get_event_loop().time()
+    }))
+    
+    # Send follow-up message
+    await websocket.send_text(json.dumps({
+        "type": "bot_message",
+        "message": "What would you like help with? You can try one of the examples above or describe your specific needs!",
+        "timestamp": asyncio.get_event_loop().time(),
+        "message_id": f"bot_{len(conversation_history[client_id])}_followup",
+        "show_feedback": True
+    }))
+
 async def handle_user_input_with_state(websocket: WebSocket, session: ChatSession, user_input: str, client_id: str):
     """Handle user input based on current state (menu vs normal chat)"""
     
@@ -372,13 +408,10 @@ async def handle_user_input_with_state(websocket: WebSocket, session: ChatSessio
             await show_main_menu(websocket, client_id)
             return
         else:
-            # User didn't select a valid option, show menu again
-            await websocket.send_text(json.dumps({
-                "type": "bot_message",
-                "message": "Please choose a valid option by typing 1, 2, 3, or 4, or type 'menu' to see the options again.",
-                "timestamp": asyncio.get_event_loop().time(),
-                "message_id": f"bot_{len(conversation_history[client_id])}"
-            }))
+            # User didn't select a service but wants to chat normally
+            # Switch to chat mode and process their input
+            user_states[client_id] = "chat"
+            await process_user_input_new(websocket, session, user_input, client_id)
             return
     
     # Handle special commands in any state
@@ -393,24 +426,19 @@ async def show_main_menu(websocket: WebSocket, client_id: str):
     """Show the main service selection menu"""
     user_states[client_id] = "menu"
     
-    menu_message = """🏠 **Main Menu** - Choose a service to try:
-
-1️⃣ **Occasion Service** - Get outfit recommendations for specific events
-2️⃣ **Vacation Service** - Plan your travel wardrobe  
-3️⃣ **Pairing Service** - Style items you already own
-4️⃣ **Styling Service** - Personal styling advice
-
-Type **1**, **2**, **3**, or **4** to get started!"""
+    menu_message = """🏠 **Main Menu** - Choose a service to try, or just start chatting:"""
     
     await websocket.send_text(json.dumps({
         "type": "bot_message",
         "message": menu_message,
         "timestamp": asyncio.get_event_loop().time(),
-        "message_id": f"bot_{len(conversation_history[client_id])}"
+        "message_id": f"bot_{len(conversation_history[client_id])}",
+        "show_service_buttons": True,
+        "services": SERVICE_EXAMPLES
     }))
 
 async def handle_service_selection(websocket: WebSocket, selection: str, client_id: str):
-    """Handle when user selects a service (1-4)"""
+    """Handle when user selects a service by typing 1-4"""
     
     service_info = SERVICE_EXAMPLES[selection]
     user_states[client_id] = "chat"  # Switch to chat state
@@ -436,7 +464,7 @@ What would you like help with?"""
         "message_id": f"bot_{len(conversation_history[client_id])}",
         "show_feedback": True
     }))
-
+    
 async def process_user_input_new(websocket: WebSocket, session: ChatSession, user_input: str, client_id: str):
     """New process function using LangGraph"""
     
@@ -561,7 +589,9 @@ async def db_status():
 async def get_chat_interface():
     """Serve the chat interface"""
     return HTMLResponse(content="""
-<!DOCTYPE html>
+                        
+                        
+            <!DOCTYPE html>
 <html>
 <head>
     <title>Broadway Fashion Bot</title>
@@ -585,27 +615,65 @@ async def get_chat_interface():
         .error { background: #f8d7da; color: #721c24; }
         .intent { background: #e3f2fd; color: #1976d2; font-size: 11px; padding: 4px 8px; border-radius: 12px; margin-bottom: 8px; border-left: 3px solid #2196f3; }
         
-        /* Menu buttons */
-        .menu-buttons {
-            display: flex;
-            flex-wrap: wrap;
+        /* Service buttons */
+        .service-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 10px;
             margin: 15px 0;
         }
-        .menu-btn {
+        .service-btn {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
-            padding: 8px 16px;
-            border-radius: 20px;
+            padding: 12px 16px;
+            border-radius: 8px;
             cursor: pointer;
             font-size: 14px;
+            font-weight: 500;
             transition: all 0.3s;
+            text-align: left;
         }
-        .menu-btn:hover {
+        .service-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
         }
+        
+        /* Service examples display */
+        .service-examples {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px 0;
+        }
+        .service-examples h3 {
+            color: #667eea;
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+        .service-examples p {
+            color: #666;
+            margin-bottom: 15px;
+        }
+        .example-prompts {
+            display: grid;
+            gap: 8px;
+        }
+        .example-prompt {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+        .example-prompt:hover {
+            background: #f0f0f0;
+            border-color: #667eea;
+        }
+        
         .quick-actions {
             margin-top: 10px;
             text-align: center;
@@ -672,7 +740,7 @@ async def get_chat_interface():
         </div>
         <div class="chat-messages" id="messages"></div>
         <div class="chat-input-container">
-            <input type="text" id="messageInput" class="chat-input" placeholder="Type 1, 2, 3, 4 to select a service, or describe what you're looking for..." onkeypress="handleKeyPress(event)">
+            <input type="text" id="messageInput" class="chat-input" placeholder="Describe what you're looking for, or use the service buttons above..." onkeypress="handleKeyPress(event)">
             <button class="send-button" onclick="sendMessage()">Send</button>
         </div>
         <div class="quick-actions">
@@ -712,7 +780,10 @@ async def get_chat_interface():
                     addMessage(data.message, 'user-message');
                     break;
                 case 'bot_message':
-                    addMessage(data.message, 'bot-message', data.message_id, data.show_feedback);
+                    addMessage(data.message, 'bot-message', data.message_id, data.show_feedback, data.show_service_buttons, data.services);
+                    break;
+                case 'service_examples':
+                    displayServiceExamples(data.service_name, data.description, data.examples);
                     break;
                 case 'intent':
                     // Show intent in the chat
@@ -741,7 +812,7 @@ async def get_chat_interface():
             }
         }
         
-        function addMessage(message, className, messageId = null, showFeedback = false) {
+        function addMessage(message, className, messageId = null, showFeedback = false, showServiceButtons = false, services = null) {
             const messagesDiv = document.getElementById('messages');
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${className}`;
@@ -749,6 +820,24 @@ async def get_chat_interface():
             
             if (messageId) {
                 messageDiv.setAttribute('data-message-id', messageId);
+            }
+            
+            // Add service buttons if requested
+            if (showServiceButtons && services) {
+                const serviceButtonsDiv = document.createElement('div');
+                serviceButtonsDiv.className = 'service-buttons';
+                
+                let buttonsHTML = '';
+                Object.entries(services).forEach(([key, service]) => {
+                    buttonsHTML += `
+                        <button class="service-btn" onclick="selectService('${key}')">
+                            ${key === '1' ? '🎭' : key === '2' ? '✈️' : key === '3' ? '👔' : '💫'} ${service.name}
+                        </button>
+                    `;
+                });
+                
+                serviceButtonsDiv.innerHTML = buttonsHTML;
+                messageDiv.appendChild(serviceButtonsDiv);
             }
             
             if (showFeedback && messageId) {
@@ -789,6 +878,41 @@ async def get_chat_interface():
                     }
                 }
             }
+        }
+        
+        function selectService(serviceKey) {
+            if (socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({
+                    type: 'service_button',
+                    service: serviceKey
+                }));
+            }
+        }
+        
+        function displayServiceExamples(serviceName, description, examples) {
+            const messagesDiv = document.getElementById('messages');
+            const examplesDiv = document.createElement('div');
+            examplesDiv.className = 'service-examples';
+            
+            let html = `
+                <h3>${serviceName}</h3>
+                <p>${description}</p>
+                <div class="example-prompts">
+            `;
+            
+            examples.forEach(example => {
+                html += `
+                    <div class="example-prompt" onclick="sendQuickMessage('${example.replace(/'/g, "\\'")}')">
+                        ${example}
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            examplesDiv.innerHTML = html;
+            
+            messagesDiv.appendChild(examplesDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
         
         function showFeedbackConfirmation(messageId, confirmationMessage) {
@@ -862,8 +986,9 @@ async def get_chat_interface():
         window.onload = initWebSocket;
     </script>
 </body>
-</html>""")
-
+</html>
+                        
+""")
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8000))
