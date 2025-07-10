@@ -538,19 +538,17 @@ class ChatSession:
         self.current_parameters = None
         self.current_recommendations = None
         self.gender = None
+        self.user_info = {'gender' : None}
         
         # Initialize LangGraph workflow
         self.fashion_workflow = FashionWorkflow(services_dict)
     
     async def process_with_langgraph(self, user_input: str, client_id: str, followup_data: Dict = None) -> List[Dict]:
         """Process user input using LangGraph workflow"""
-        
-        # FIXED: Initialize user_info properly
-        user_info = {'gender' : None}
         if followup_data:
-            user_info.update(followup_data)
+            self.user_info.update(followup_data)
         print("followup data received", followup_data)
-        # Create initial state
+
         initial_state = FashionState(
             user_input=user_input,
             client_id=client_id,
@@ -566,7 +564,7 @@ class ChatSession:
             confidence_score=None,
             error_message=None,
             is_gender_loop=False,
-            user_info=user_info  # FIXED: Properly initialize user_info
+            user_info=self.user_info
         )
         
         try:
