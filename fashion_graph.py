@@ -21,6 +21,7 @@ class FashionState(TypedDict):
     error_message: Optional[str]
     is_gender_loop: bool  
     user_info: Optional[Dict]  # FIXED: Added default initialization
+    image : Optional[str]
 
 
 class FashionWorkflow:
@@ -345,7 +346,8 @@ class FashionWorkflow:
                 conversation_context=state['conversation_history'],
                 user_info=state["user_info"],
                 product_details={},
-                recs=state.get('recommendations', [])
+                recs=state.get('recommendations', []),
+                image = state.get('image')
             )
             summary = result['user_response']['summary']
             tips = result['styling_tips_for_recommendations']
@@ -355,6 +357,7 @@ class FashionWorkflow:
             state["recommendations"] = []
             state["response_message"] = formatted_text
             state["follow_up_needed"] = False
+            
             return state
             
         except Exception as e:
@@ -477,7 +480,7 @@ class FashionWorkflow:
         if len(required_fields) - len(missing_fields) < 2:
       
             return 'followup'
-        
+        state['image'] = None
         return 'complete'
     
     def _infer_gender(self, user_input: str, conversation_history: str, gender) -> Optional[str]:
@@ -539,16 +542,17 @@ class ChatSession:
         self.current_recommendations = None
         self.gender = None
         self.user_info = {'gender' : None}
-        
+        self.image = None
         # Initialize LangGraph workflow
         self.fashion_workflow = FashionWorkflow(services_dict)
     
-    async def process_with_langgraph(self, user_input: str, client_id: str, followup_data: Dict = None) -> List[Dict]:
+    async def process_with_langgraph(self, user_input: str, client_id: str, followup_data: Dict = None, image = None) -> List[Dict]:
         """Process user input using LangGraph workflow"""
         if followup_data:
             self.user_info.update(followup_data)
         print("followup data received", followup_data)
-
+        if image:
+            self.image = image
         initial_state = FashionState(
             user_input=user_input,
             client_id=client_id,
@@ -564,7 +568,8 @@ class ChatSession:
             confidence_score=None,
             error_message=None,
             is_gender_loop=False,
-            user_info=self.user_info
+            user_info=self.user_info,
+            image=self.image
         )
         
         try:

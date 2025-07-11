@@ -384,9 +384,11 @@ Please choose which service you'd like to try, or just start chatting about what
                 "message": user_input,
                 "timestamp": asyncio.get_event_loop().time()
             }))
-            
+            image = None
+            if 'image' in message_data.keys():
+                image = message_data.get('image')
             # Handle user input based on current state
-            await handle_user_input_with_state(websocket, session, user_input, client_id)
+            await handle_user_input_with_state(websocket, session, user_input, client_id, image)
             
     except WebSocketDisconnect:
         print(f"Client {client_id} disconnected")
@@ -434,7 +436,7 @@ async def handle_service_button_click(websocket: WebSocket, service_key: str, cl
         "show_feedback": True
     }))
 
-async def handle_user_input_with_state(websocket: WebSocket, session: ChatSession, user_input: str, client_id: str):
+async def handle_user_input_with_state(websocket: WebSocket, session: ChatSession, user_input: str, client_id: str, image):
     """Handle user input based on current state (menu vs normal chat)"""
     
     current_state = user_states.get(client_id, "menu")
@@ -451,7 +453,7 @@ async def handle_user_input_with_state(websocket: WebSocket, session: ChatSessio
             # User didn't select a service but wants to chat normally
             # Switch to chat mode and process their input
             user_states[client_id] = "chat"
-            await process_user_input_new(websocket, session, user_input, client_id)
+            await process_user_input_new(websocket, session, user_input, client_id, image)
             return
     
     # Handle special commands in any state
@@ -460,7 +462,7 @@ async def handle_user_input_with_state(websocket: WebSocket, session: ChatSessio
         return
     
     # Normal chat processing
-    await process_user_input_new(websocket, session, user_input, client_id)
+    await process_user_input_new(websocket, session, user_input, client_id, image)
 
 async def show_main_menu(websocket: WebSocket, client_id: str):
     """Show the main service selection menu"""
@@ -505,7 +507,7 @@ What would you like help with?"""
         "show_feedback": True
     }))
     
-async def process_user_input_new(websocket: WebSocket, session: ChatSession, user_input: str, client_id: str):
+async def process_user_input_new(websocket: WebSocket, session: ChatSession, user_input: str, client_id: str, image):
     """New process function using LangGraph"""
     
     try:
@@ -516,7 +518,7 @@ async def process_user_input_new(websocket: WebSocket, session: ChatSession, use
         }))
         
         # Process with LangGraph
-        messages = await session.process_with_langgraph(user_input, session.client_id)
+        messages = await session.process_with_langgraph(user_input=user_input,client_id=session.client_id, image=image)
         
         # Store conversation for feedback
         bot_response = ""
@@ -658,6 +660,31 @@ async def get_chat_interface():
         .error { background: #f8d7da; color: #721c24; }
         .intent { background: #e3f2fd; color: #1976d2; font-size: 11px; padding: 4px 8px; border-radius: 12px; margin-bottom: 8px; border-left: 3px solid #2196f3; }
         
+        .input-group {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .image-input {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .image-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+        }
+
+        .chat-input {
+            margin: 0; /* Remove any existing margin */
+        }
+
         /* Service buttons */
         .service-buttons {
             display: grid;
@@ -847,7 +874,10 @@ async def get_chat_interface():
         </div>
         <div class="chat-messages" id="messages"></div>
         <div class="chat-input-container">
-            <input type="text" id="messageInput" class="chat-input" placeholder="Describe what you're looking for, or use the service buttons above..." onkeypress="handleKeyPress(event)">
+            <div class="input-group">
+                <input type="text" id="messageInput" class="chat-input" placeholder="Describe what you're looking for..." onkeypress="handleKeyPress(event)">
+                <input type="text" id="imageInput" class="image-input" placeholder="Image path (e.g., images/person1.jpeg)" onkeypress="handleKeyPress(event)">
+            </div>
             <button class="send-button" onclick="sendMessage()">Send</button>
         </div>
         <div class="quick-actions">
@@ -1147,12 +1177,22 @@ async def get_chat_interface():
         }
         
         function sendMessage() {
-            const input = document.getElementById('messageInput');
-            const message = input.value.trim();
+            const messageInput = document.getElementById('messageInput');
+            const imageInput = document.getElementById('imageInput');
+            const message = messageInput.value.trim();
+            const imagePath = imageInput.value.trim();
             
             if (message && socket.readyState === WebSocket.OPEN) {
-                socket.send(JSON.stringify({ message: message }));
-                input.value = '';
+                const data = { message: message };
+                
+                // Add image path if provided
+                if (imagePath) {
+                    data.image = imagePath;
+                }
+                
+                socket.send(JSON.stringify(data));
+                messageInput.value = '';
+                imageInput.value = '';
             }
         }
         

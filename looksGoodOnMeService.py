@@ -4,6 +4,7 @@ from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.runnables import RunnablePassthrough, RunnableParallel, RunnableLambda
 from pydantic import BaseModel, Field
 from typing import Dict, Any, List, Optional
+from clothingClassifier import ClothingClassifier
 import json
 
 # Structured Output Models
@@ -77,6 +78,8 @@ class LooksGoodOnMeService:
             model=model_name,
             temperature=0.3
         )
+
+        self.clothing_classifier = ClothingClassifier()
         
         self.parser = PydanticOutputParser(pydantic_object=LooksGoodOnMeResponse)
         self.inference_parser = PydanticOutputParser(pydantic_object=InferredProductDetails)
@@ -171,7 +174,8 @@ Please provide a comprehensive styling analysis including specific styling tips 
         conversation_context: str,
         user_info: Dict[str, Any],
         product_details: Dict[str, Any],
-        recs : List = None
+        recs : List = None,
+        image : str = None
     ) -> Dict[str, Any]:
         """
         Main analysis method that integrates with your Broadway system
@@ -187,6 +191,15 @@ Please provide a comprehensive styling analysis including specific styling tips 
         """
         
         try:
+
+            if image:
+                tags = self.clothing_classifier.get_simple_tags(image)
+                product_details = {
+                    "type" : f"{tags['topwear']}, {tags['bottomwear']}",
+                    "color" : f"{tags['top_color']}, {tags['bottom_color']}",
+                    "description" : tags['description']
+                }
+
             if not product_details or product_details.get("type") == "unknown":
                 inference_data = {
                     "user_input": user_input,
@@ -390,11 +403,12 @@ if __name__ == "__main__":
 
     # Run analysis
     result = service.analyze_looks_good_on_me(
-        user_input="Will a pink dress look good on me",
-        conversation_context="The user is seeking validation on whether a pink dress would suit her, which aligns with the intent of styling advice focused on personal fit and color compatibility.",
+        user_input="Will this dress look good on me",
+        conversation_context="The user is seeking validation on whether the dress suit her, which aligns with the intent of styling advice focused on personal fit and color compatibility.",
         user_info=user_info,
         product_details={},#product_details
-        recs=[] #recs
+        recs=[], #recs,
+        image="images/person1.jpg"
     )
     print(result)
     
