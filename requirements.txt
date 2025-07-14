@@ -12,4 +12,5 @@ pydantic==2.10.3
 torch==2.2.2
 torchvision==0.17.2
 Pillow
+numpy==1.24.3
 git+https://github.com/openai/CLIP.git
