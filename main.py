@@ -1,3 +1,4 @@
+import io
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
 import json
@@ -7,7 +8,7 @@ from typing import Dict, Any
 from datetime import datetime
 from pathlib import Path
 import asyncpg
-
+from PIL import Image
 # Your existing imports
 from occasionService import OccasionService
 from reccomendationBot import RecommendationService
@@ -302,7 +303,16 @@ Please choose which service you'd like to try, or just start chatting about what
             message_data = json.loads(data)
             
             print("message received =", message_data)
-            # Handle feedback
+            image = None
+            if 'image' in message_data and message_data['image']:
+                # Convert base64 to PIL Image
+                import base64
+                base64_string = message_data['image']
+                if base64_string.startswith('data:image'):
+                    base64_string = base64_string.split(',')[1]
+                
+                image_bytes = base64.b64decode(base64_string)
+                image = Image.open(io.BytesIO(image_bytes)).convert('RGB')
             if message_data.get("type") == "feedback":
                 message_id = message_data.get("message_id")
                 feedback_type = message_data.get("feedback")  # "thumbs_up" or "thumbs_down"
@@ -876,7 +886,7 @@ async def get_chat_interface():
         <div class="chat-input-container">
             <div class="input-group">
                 <input type="text" id="messageInput" class="chat-input" placeholder="Describe what you're looking for..." onkeypress="handleKeyPress(event)">
-                <input type="text" id="imageInput" class="image-input" placeholder="Image path (e.g., images/person1.jpeg)" onkeypress="handleKeyPress(event)">
+                <input type="file" id="imageInput" class="image-input" accept="image/*" onchange="handleImageUpload(event)">
             </div>
             <button class="send-button" onclick="sendMessage()">Send</button>
         </div>
@@ -1176,23 +1186,36 @@ async def get_chat_interface():
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
         
+        let selectedImageBase64 = null;
+
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    selectedImageBase64 = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
         function sendMessage() {
             const messageInput = document.getElementById('messageInput');
-            const imageInput = document.getElementById('imageInput');
             const message = messageInput.value.trim();
-            const imagePath = imageInput.value.trim();
-            
+             console.log('Sending data:', message, socket.readyState);
             if (message && socket.readyState === WebSocket.OPEN) {
                 const data = { message: message };
                 
-                // Add image path if provided
-                if (imagePath) {
-                    data.image = imagePath;
+                // Add base64 image if uploaded
+                if (selectedImageBase64) {
+                    data.image = selectedImageBase64;
                 }
+               
                 
                 socket.send(JSON.stringify(data));
                 messageInput.value = '';
-                imageInput.value = '';
+                selectedImageBase64 = null;
+                document.getElementById('imageInput').value = '';
             }
         }
         

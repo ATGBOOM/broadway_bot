@@ -168,7 +168,7 @@ Please provide a comprehensive styling analysis including specific styling tips 
         )
    
 
-    def analyze_looks_good_on_me(
+    async def analyze_looks_good_on_me(
         self, 
         user_input: str,
         conversation_context: str,
@@ -193,7 +193,7 @@ Please provide a comprehensive styling analysis including specific styling tips 
         try:
 
             if image:
-                tags = self.clothing_classifier.get_simple_tags(image)
+                tags = await self.clothing_classifier.get_simple_tags(image)
                 product_details = {
                     "type" : f"{tags['topwear']}, {tags['bottomwear']}",
                     "color" : f"{tags['top_color']}, {tags['bottom_color']}",
@@ -367,62 +367,62 @@ Please provide a comprehensive styling analysis including specific styling tips 
 
 
 # Example usage showing integration with your system
-if __name__ == "__main__":
-    service = LooksGoodOnMeService()
+# if __name__ == "__main__":
+#     service = LooksGoodOnMeService()
     
-    # Example input from your system
-    user_input = "Would this red dress look good on me for a funeral?"
-    conversation_context = "User is looking for funeral attire. Previously discussed avoiding white/cream colors."
+#     # Example input from your system
+#     user_input = "Would this red dress look good on me for a funeral?"
+#     conversation_context = "User is looking for funeral attire. Previously discussed avoiding white/cream colors."
     
-    user_info = {
-        "body_type": "pear",
-        "skin_tone": "cool",
-        "height": "5'6",
-        "style_preferences": ["elegant", "classic", "feminine"],
-        "lifestyle": "professional",
-        "size_preferences": "fitted on top, flowy on bottom"
-    }
+#     user_info = {
+#         "body_type": "pear",
+#         "skin_tone": "cool",
+#         "height": "5'6",
+#         "style_preferences": ["elegant", "classic", "feminine"],
+#         "lifestyle": "professional",
+#         "size_preferences": "fitted on top, flowy on bottom"
+#     }
     
-    product_details = {
-        "type": "dress",
-        "color": "red",
-        "description": "A-line midi dress with three-quarter sleeves",
-        "brand_name": "Broadway Collection",
-        "price": "$89"
-    }
+#     product_details = {
+#         "type": "dress",
+#         "color": "red",
+#         "description": "A-line midi dress with three-quarter sleeves",
+#         "brand_name": "Broadway Collection",
+#         "price": "$89"
+#     }
     
-    recs = [
-    {
-        "title": "Black Funeral Dress",
-        "brand_name": "Broadway",
-        "color": "black",
-        "type": "dress",
-        "tags": ["funeral", "black", "conservative", "midi"]
-    }
-    ]
+#     recs = [
+#     {
+#         "title": "Black Funeral Dress",
+#         "brand_name": "Broadway",
+#         "color": "black",
+#         "type": "dress",
+#         "tags": ["funeral", "black", "conservative", "midi"]
+#     }
+#     ]
 
-    # Run analysis
-    result = service.analyze_looks_good_on_me(
-        user_input="Will this dress look good on me",
-        conversation_context="The user is seeking validation on whether the dress suit her, which aligns with the intent of styling advice focused on personal fit and color compatibility.",
-        user_info=user_info,
-        product_details={},#product_details
-        recs=[], #recs,
-        image="images/person1.jpg"
-    )
-    print(result)
+#     # Run analysis
+#     await result = service.analyze_looks_good_on_me(
+#         user_input="Will this dress look good on me",
+#         conversation_context="The user is seeking validation on whether the dress suit her, which aligns with the intent of styling advice focused on personal fit and color compatibility.",
+#         user_info=user_info,
+#         product_details={},#product_details
+#         recs=[], #recs,
+#         image="images/person1.jpg"
+#     )
+#     print(result)
     
-    print("=== STYLING ANALYSIS RESULT ===")
-    print(f"Success: {result['success']}")
-    print(f"User Response: {result['user_response']['summary']}")
-    print(f"Styling Tips for Recommendations: {result['styling_tips_for_recommendations']}")
-    print(f"Should Find Alternatives: {result['should_find_alternatives']}")
+#     print("=== STYLING ANALYSIS RESULT ===")
+#     print(f"Success: {result['success']}")
+#     print(f"User Response: {result['user_response']['summary']}")
+#     print(f"Styling Tips for Recommendations: {result['styling_tips_for_recommendations']}")
+#     print(f"Should Find Alternatives: {result['should_find_alternatives']}")
     
-    # Example of how your recommendation service would use this
-    if result['success']:
-        styling_tags = service.get_styling_tags_for_recommendations(
-            styling_tips=result['styling_tips_for_recommendations'],
-            complementary_pieces=result['complementary_pieces'],
-            user_style_preferences=user_info['style_preferences']
-        )
-        print(f"Final Tags for Recommendation Service: {styling_tags}")
+#     # Example of how your recommendation service would use this
+#     if result['success']:
+#         styling_tags = service.get_styling_tags_for_recommendations(
+#             styling_tips=result['styling_tips_for_recommendations'],
+#             complementary_pieces=result['complementary_pieces'],
+#             user_style_preferences=user_info['style_preferences']
+#         )
+#         print(f"Final Tags for Recommendation Service: {styling_tags}")

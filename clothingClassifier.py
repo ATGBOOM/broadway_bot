@@ -2,9 +2,12 @@
 # Install required packages first:
 # !pip install torch torchvision clip-by-openai pillow
 
+import base64
+import io
 import torch
 import clip
 from PIL import Image
+
 
 class ClothingClassifier:
     def __init__(self):
@@ -52,7 +55,7 @@ class ClothingClassifier:
             "fair", "brown", "ashy", "red"
         ]
     
-    def classify_image(self, image_path, verbose=False):
+    async def classify_image (self, file, verbose=False):
         """
         Classify clothing and skin color from image path
         
@@ -65,11 +68,17 @@ class ClothingClassifier:
         """
         try:
             # Load and preprocess the image
-            image = Image.open(image_path).convert('RGB')
-            image_input = self.preprocess(image).unsqueeze(0).to(self.device)
+            if isinstance(file, str):
+            # Handle base64 string
             
+                if file.startswith('data:image'):
+                    file = file.split(',')[1]
+                image_bytes = base64.b64decode(file)
+                image = Image.open(io.BytesIO(image_bytes)).convert('RGB')
+                image_input = self.preprocess(image).unsqueeze(0).to(self.device)
+
             if verbose:
-                print(f"Analyzing full body image: {image_path}")
+                print(f"Analyzing full body image: {image}")
                 print("=" * 60)
 
             # ==== SKIN COLOR DETECTION =====
@@ -298,14 +307,14 @@ class ClothingClassifier:
             print(f"Error processing image: {e}")
             return None
     
-    def get_simple_tags(self, image_path):
+    async def get_simple_tags(self, image_path):
         """
         Get simple tags without verbose output
         
         Returns:
             dict: Simple tags with best predictions
         """
-        result = self.classify_image(image_path, verbose=False)
+        result = await self.classify_image(image_path, verbose=False)
         if result:
             return {
                 'topwear': result['topwear'][0][0],
@@ -318,33 +327,33 @@ class ClothingClassifier:
         return None
 
 # Example usage:
-if __name__ == "__main__":
-    # Initialize the classifier
-    classifier = ClothingClassifier()
+# if __name__ == "__main__":
+#     # Initialize the classifier
+#     classifier = ClothingClassifier()
     
-    # Example image path
-    image_path = "images/person6.jpeg"  # Change this to your actual image path
+#     # Example image path
+#     image_path = "images/person6.jpeg"  # Change this to your actual image path
     
-    print("CLIP Clothing Classifier")
-    print("=" * 50)
+#     print("CLIP Clothing Classifier")
+#     print("=" * 50)
     
-    # Get detailed analysis
-    results = classifier.classify_image(image_path, verbose=True)
+#     # Get detailed analysis
+#     results = classifier.classify_image(image_path, verbose=True)
     
-    if results:
-        print(f"\n✨ Final Result: {results['description']}")
+#     if results:
+#         print(f"\n✨ Final Result: {results['description']}")
     
-    # Get simple tags
-    print("\n" + "="*50)
-    print("SIMPLE TAGS:")
-    simple_tags = classifier.get_simple_tags(image_path)
-    if simple_tags:
-        print(f"Topwear: {simple_tags['topwear']}")
-        print(f"Bottomwear: {simple_tags['bottomwear']}")
-        print(f"Skin Color: {simple_tags['skin_color']}")
-        print(f"Description: {simple_tags['description']}")
+#     # Get simple tags
+#     print("\n" + "="*50)
+#     print("SIMPLE TAGS:")
+#     simple_tags = classifier.get_simple_tags(image_path)
+#     if simple_tags:
+#         print(f"Topwear: {simple_tags['topwear']}")
+#         print(f"Bottomwear: {simple_tags['bottomwear']}")
+#         print(f"Skin Color: {simple_tags['skin_color']}")
+#         print(f"Description: {simple_tags['description']}")
 
-# Usage from other places:
-# classifier = ClothingClassifier()
-# tags = classifier.get_simple_tags("path/to/image.jpg")
-# print(tags['topwear'], tags['bottomwear'], tags['skin_color'])
+# # Usage from other places:
+# # classifier = ClothingClassifier()
+# # tags = classifier.get_simple_tags("path/to/image.jpg")
+# # print(tags['topwear'], tags['bottomwear'], tags['skin_color'])

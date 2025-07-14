@@ -334,14 +334,14 @@ class FashionWorkflow:
             state["error_message"] = f"Error in general handling: {str(e)}"
             return state
         
-    def _handle_styling(self, state: FashionState) -> FashionState:
+    async def _handle_styling(self, state: FashionState) -> FashionState:
         """Handle styling mode using your existing logic"""
         try:
             # FIXED: Initialize user_info if not present
             if not state.get("user_info"):
                 state["user_info"] = {}
             
-            result = self.styling_service.analyze_looks_good_on_me(
+            result = await self.styling_service.analyze_looks_good_on_me(
                 user_input=state['user_input'],
                 conversation_context=state['conversation_history'],
                 user_info=state["user_info"],
