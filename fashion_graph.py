@@ -349,11 +349,28 @@ class FashionWorkflow:
                 recs=state.get('recommendations', []),
                 image = state.get('image')
             )
+
+            print("results are", result)
+                
             summary = result['user_response']['summary']
-            tips = result['styling_tips_for_recommendations']
+            tips = list(result['user_response']['stlying_tips'])[:5]
+            what_works = result['user_response']['what_works']
+            improvements = result['user_response']['improvement']
+            user_response = result['user_response']
 
-            formatted_text = f"{summary}\n\nStyling Tips:\n" + "\n".join([f"{i+1}. {tip.capitalize()}" for i, tip in enumerate(tips)])
 
+            summary = result['user_response']['summary']
+
+
+            formatted_text = (
+                f"{str(summary)}\n\n"
+                f"What Works:\n{str(what_works)}\n\n"
+                f"Areas for Improvement:\n{str(improvements)}\n\n"
+                f"Styling Tips:\n"
+                + "\n".join([f"{i+1}. {tip.capitalize()}" for i, tip in enumerate(tips)])
+            )
+
+            print("formatted text is, " + formatted_text)
             state["recommendations"] = []
             state["response_message"] = formatted_text
             state["follow_up_needed"] = False

@@ -1,3 +1,4 @@
+import asyncio
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import PydanticOutputParser
@@ -13,10 +14,7 @@ class StyleCompatibilityAnalysis(BaseModel):
     overall_compatibility: str = Field(
         description="Overall assessment: excellent, good, fair, or poor"
     )
-    confidence_score: int = Field(
-        description="Confidence level from 1-10", 
-        ge=1, le=10
-    )
+
     body_type_match: bool = Field(
         description="Whether the item flatters the user's body type"
     )
@@ -48,12 +46,18 @@ class LooksGoodOnMeResponse(BaseModel):
     """Complete response from the LooksGoodOnMe service"""
     compatibility_analysis: StyleCompatibilityAnalysis
     styling_recommendations: StylingRecommendations
-    detailed_feedback: str = Field(
-        description="Comprehensive explanation of the analysis"
-    )
     summary: str = Field(
         description="Brief summary for the user"
     )
+    what_works : str = Field(
+        description="What parts of the outfit looks good"
+    )
+
+    improvement : str = Field(
+        description="what areas of outfit could be improved"
+    )
+   
+
     should_recommend_alternatives: bool = Field(
         description="Whether the recommendation service should find alternatives"
     )
@@ -238,6 +242,7 @@ Please provide a comprehensive styling analysis including specific styling tips 
             
             # Run the analysis
             result = self.analysis_chain.invoke(chain_input)
+            print(result)
             # Format response for your system
             return {
                 "success": True,
@@ -250,14 +255,14 @@ Please provide a comprehensive styling analysis including specific styling tips 
                 # User-facing response
                 "user_response": {
                     "summary": result.summary,
-                    "detailed_feedback": result.detailed_feedback,
-                    "compatibility_score": result.compatibility_analysis.confidence_score,
-                    "overall_assessment": result.compatibility_analysis.overall_compatibility
+                    "stlying_tips": result.styling_recommendations.styling_tips,
+                    "adjustments": result.styling_recommendations.fit_adjustments,
+                    "complementary_pieces": result.styling_recommendations.complementary_pieces,
+                    "what_works" : result.what_works,
+                    "improvement" : result.improvement
                 },
                 
-                # For workflow decisions
-                "should_find_alternatives": result.should_recommend_alternatives,
-                "confidence_score": result.compatibility_analysis.confidence_score
+                
             }
             
         except Exception as e:
@@ -366,8 +371,8 @@ Please provide a comprehensive styling analysis including specific styling tips 
             }
 
 
-# Example usage showing integration with your system
-# if __name__ == "__main__":
+
+# async def main():
 #     service = LooksGoodOnMeService()
     
 #     # Example input from your system
@@ -375,7 +380,7 @@ Please provide a comprehensive styling analysis including specific styling tips 
 #     conversation_context = "User is looking for funeral attire. Previously discussed avoiding white/cream colors."
     
 #     user_info = {
-#         "body_type": "pear",
+#         "body_type": "athletic",
 #         "skin_tone": "cool",
 #         "height": "5'6",
 #         "style_preferences": ["elegant", "classic", "feminine"],
@@ -402,13 +407,13 @@ Please provide a comprehensive styling analysis including specific styling tips 
 #     ]
 
 #     # Run analysis
-#     await result = service.analyze_looks_good_on_me(
-#         user_input="Will this dress look good on me",
+#     result = await service.analyze_looks_good_on_me(
+#         user_input="Will this green jacket, jeans, and blue tshirt look good on me",
 #         conversation_context="The user is seeking validation on whether the dress suit her, which aligns with the intent of styling advice focused on personal fit and color compatibility.",
 #         user_info=user_info,
 #         product_details={},#product_details
 #         recs=[], #recs,
-#         image="images/person1.jpg"
+        
 #     )
 #     print(result)
     
@@ -426,3 +431,6 @@ Please provide a comprehensive styling analysis including specific styling tips 
 #             user_style_preferences=user_info['style_preferences']
 #         )
 #         print(f"Final Tags for Recommendation Service: {styling_tags}")
+
+# if __name__ == "__main__":
+#     asyncio.run(main())
