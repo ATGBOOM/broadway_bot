@@ -165,9 +165,7 @@ async def save_feedback(client_id: str, user_input: str, bot_response: str, bot_
         new_feedback = {
             "id": len(feedback_data) + 1,
             "client_id": client_id,
-            "user_input": user_input,
-            "bot_response": bot_response,
-            "bot_intent": bot_intent,
+            "transcript" : conversation_history,
             "feedback_type": feedback_type,
             "timestamp": datetime.now().isoformat()
         }
@@ -216,7 +214,7 @@ user_states: Dict[str, str] = {}  # Track user's current state
 # Service examples mapping
 SERVICE_EXAMPLES = {
     "1": {
-        "name": "Occasion Service",
+        "name": "Need advice for a specific occasion",
         "description": "Get outfit recommendations for specific events and occasions",
         "examples": [
             "I have a wedding to attend next month",
@@ -227,7 +225,7 @@ SERVICE_EXAMPLES = {
         ]
     },
     "2": {
-        "name": "Vacation Service", 
+        "name": "Im going on a vacation", 
         "description": "Plan your travel wardrobe based on destination and activities",
         "examples": [
             "I'm going to Paris for a week in summer",
@@ -238,7 +236,7 @@ SERVICE_EXAMPLES = {
         ]
     },
     "3": {
-        "name": "Pairing Service",
+        "name": "What do I pair it with",
         "description": "Get suggestions on what goes well with items you already own",
         "examples": [
             "What goes well with my black leather jacket?",
@@ -249,12 +247,19 @@ SERVICE_EXAMPLES = {
         ]
     },
     "4": {
-        "name": "Styling Service",
+        "name": "Will this suit me",
         "description": "Personal styling advice based on your preferences and body type",
         "examples": [
             "Would green jackets look good on me?",
             "what color dresses would look good on me?",
             "Would a red dress look good on me?",
+        ]
+    },
+    "5": {
+        "name": "Rate my OTD",
+        "description": "Personal styling advice on current outfit. Send a photo and type down rate my OTD to get started",
+        "examples": [
+            "Rate my OTD",
         ]
     }
 }
@@ -299,6 +304,7 @@ Please choose which service you'd like to try, or just start chatting about what
     
     try:
         while True:
+            print("conversation history being saved is -", conversation_history)
             data = await websocket.receive_text()
             message_data = json.loads(data)
             
@@ -347,7 +353,7 @@ Please choose which service you'd like to try, or just start chatting about what
                 print("query is", query)
                 # Process with the previous query and new followup data
                 messages = await session.process_with_langgraph(
-                    user_input=query,  
+                    user_input="",  
                     client_id=client_id,
                     followup_data=followup_responses 
                 )
@@ -550,7 +556,7 @@ async def process_user_input_new(websocket: WebSocket, session: ChatSession, use
                 print("followup message in frontend", message)
                 pass
             await websocket.send_text(json.dumps(message))
-        
+        print("the bot response is", bot_response)
         # Store in conversation history
         conversation_history[client_id].append({
             "user_input": user_input,
@@ -749,7 +755,27 @@ async def get_chat_interface():
             transition: all 0.2s;
             font-size: 14px;
         }
-       
+                        
+        .message-image {
+            max-width: 200px;
+            max-height: 200px;
+            border-radius: 8px;
+            margin-top: 8px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .message-image:hover {
+            transform: scale(1.05);
+        }
+
+        .image-preview {
+            max-width: 150px;
+            max-height: 100px;
+            border-radius: 4px;
+            margin-top: 5px;
+            border: 1px solid #ddd;
+        }
         
         /* Followup questions */
         .followup-container {
@@ -901,7 +927,7 @@ async def get_chat_interface():
 
     <script>
         let socket;
-        let clientId = Math.random().toString(36).substring(7);
+        let clientId = "stlying_man_fashion_1";
         
         function initWebSocket() {
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -962,7 +988,7 @@ async def get_chat_interface():
             }
         }
         
-        function addMessage(message, className, messageId = null, showFeedback = false, showServiceButtons = false, services = null) {
+        function addMessage(message, className, messageId = null, showFeedback = false, showServiceButtons = false, services = null, imageData = null) {
             const messagesDiv = document.getElementById('messages');
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${className}`;
@@ -970,6 +996,15 @@ async def get_chat_interface():
             
             if (messageId) {
                 messageDiv.setAttribute('data-message-id', messageId);
+            }
+            
+            // Add image if provided
+            if (imageData) {
+                const imageElement = document.createElement('img');
+                imageElement.src = imageData;
+                imageElement.className = 'message-image';
+                imageElement.onclick = () => window.open(imageData, '_blank');
+                messageDiv.appendChild(imageElement);
             }
             
             // Add service buttons if requested
@@ -1188,22 +1223,11 @@ async def get_chat_interface():
         
         let selectedImageBase64 = null;
 
-        function handleImageUpload(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    selectedImageBase64 = e.target.result;
-                };
-                reader.readAsDataURL(file);
-            }
-        }
-
         function sendMessage() {
             const messageInput = document.getElementById('messageInput');
             const message = messageInput.value.trim();
-             console.log('Sending data:', message, socket.readyState);
-            if (message && socket.readyState === WebSocket.OPEN) {
+            console.log('Sending data:', message, socket.readyState);
+            if ((message || selectedImageBase64) && socket.readyState === WebSocket.OPEN) {
                 const data = { message: message };
                 
                 // Add base64 image if uploaded
@@ -1211,12 +1235,80 @@ async def get_chat_interface():
                     data.image = selectedImageBase64;
                 }
                
+                if (message || selectedImageBase64) {
+                    // Create a user message div manually to show image
+                    const messagesDiv = document.getElementById('messages');
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = 'message user-message';
+                    
+                    if (message) {
+                        messageDiv.textContent = message;
+                    }
+                    
+                    if (selectedImageBase64) {
+                        const imageElement = document.createElement('img');
+                        imageElement.src = selectedImageBase64;
+                        imageElement.className = 'message-image';
+                        imageElement.onclick = () => window.open(selectedImageBase64, '_blank');
+                        messageDiv.appendChild(imageElement);
+                    }
+                    
+                    messagesDiv.appendChild(messageDiv);
+                    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                }
                 
                 socket.send(JSON.stringify(data));
                 messageInput.value = '';
                 selectedImageBase64 = null;
                 document.getElementById('imageInput').value = '';
             }
+        }
+                        
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    selectedImageBase64 = e.target.result;
+                    
+                    // Show preview
+                    showImagePreview(selectedImageBase64);
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+        
+        function showImagePreview(imageSrc) {
+            // Remove existing preview
+            const existingPreview = document.getElementById('imagePreview');
+            if (existingPreview) {
+                existingPreview.remove();
+            }
+            
+            // Create preview
+            const previewDiv = document.createElement('div');
+            previewDiv.id = 'imagePreview';
+            previewDiv.style.cssText = 'padding: 10px; background: #f9f9f9; border-radius: 8px; margin: 8px 0; text-align: center;';
+            
+            const previewImg = document.createElement('img');
+            previewImg.src = imageSrc;
+            previewImg.className = 'image-preview';
+            
+            const removeBtn = document.createElement('button');
+            removeBtn.textContent = '✕ Remove';
+            removeBtn.style.cssText = 'margin-left: 10px; padding: 4px 8px; background: #ff4444; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;';
+            removeBtn.onclick = () => {
+                selectedImageBase64 = null;
+                document.getElementById('imageInput').value = '';
+                previewDiv.remove();
+            };
+            
+            previewDiv.appendChild(previewImg);
+            previewDiv.appendChild(removeBtn);
+            
+            // Insert preview above input
+            const inputContainer = document.querySelector('.chat-input-container');
+            inputContainer.parentNode.insertBefore(previewDiv, inputContainer);
         }
         
         function sendQuickMessage(message) {

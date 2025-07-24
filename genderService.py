@@ -31,7 +31,7 @@ PREVIOUSLY KNOWN GENDER:
 
 ### Your task:
 
-1. First, determine if the user query is:
+1. Determine if the user query is:
    - A **general or informational query** (e.g. "What’s trending at the Met Gala?", "How to apply sunscreen", "Tell me a joke")  
    - A **specific product-related or personal recommendation request** (e.g. "Show me red dresses", "What should I wear to a wedding?")
 

@@ -47,7 +47,7 @@ class LooksGoodOnMeResponse(BaseModel):
     compatibility_analysis: StyleCompatibilityAnalysis
     styling_recommendations: StylingRecommendations
     summary: str = Field(
-        description="Brief summary for the user"
+        description="Brief summary for the user, but do not include the colors of the clothings"
     )
     what_works : str = Field(
         description="What parts of the outfit looks good"
@@ -103,8 +103,7 @@ Your analysis should consider:
 4. **Fit & Proportion**: How to make the item work best for their body
 5. **Versatility**: How to style it for different occasions
 
-IMPORTANT: Your styling tips will be used as search tags to find complementary products, so make them specific and searchable (e.g., "cropped blazer", "nude heels", "delicate jewelry", "high-waisted", "oversized").
-
+IMPORTANT: Your styling tips will be used as search tags to find complementary products, so make them specific and searchable (e.g., "cropped blazer", "nude heels", "delicate jewelry", "high-waisted", "oversized"). In the responses do not explicitly say the color of the clothing they have uploaded.
 {format_instructions}"""),
             
             ("human", """Analyze this styling scenario:

@@ -15,5 +15,588 @@
     "bot_intent": "The user is looking for men's jeans and is requesting options or recommendations for this specific clothing item.",
     "feedback_type": "thumbs_up",
     "timestamp": "2025-07-07T15:30:38.915974"
+  },
+  {
+    "id": 3,
+    "client_id": "occasion_man_fashion_1",
+    "transcript": {
+      "occasion_man_fashion_1": [
+        {
+          "user_input": "what should I wear to my party tomorrow",
+          "bot_response": "",
+          "bot_intent": "The user is seeking outfit suggestions for a party they are attending tomorrow.",
+          "bot_message_id": "bot_0",
+          "timestamp": "2025-07-22T11:15:02.173331"
+        },
+        {
+          "user_input": "give me more casual reccomendations",
+          "bot_response": "Casual vibes for a party? Absolutely! Let’s keep it relaxed yet stylish. Picture yourself in a classic cotton basic t-shirt paired with vintage wash skinny jeans for that effortlessly cool look. You could even swap in some graphic tees for a fun twist, and finish it off with boat shoes for a laid-back yet polished touch. This combination will have you looking sharp without feeling overdone, perfect for mingling and enjoying the festivities!\n\nAre you leaning towards a specific color palette or any particular vibe for the party? And what’s the weather looking like for tomorrow?",
+          "bot_intent": "The user, a male, is seeking more casual outfit recommendations for a party they are attending tomorrow, moving away from the previously suggested formal attire.",
+          "bot_message_id": "bot_1",
+          "timestamp": "2025-07-22T11:16:48.348103"
+        },
+        {
+          "user_input": "what would go well with a white cotton tshirt",
+          "bot_response": "A white cotton t-shirt is such a versatile staple, especially for a casual party! You can easily elevate your look by pairing it with vintage wash skinny jeans for a trendy vibe or go for classic blue denim jeans for that timeless appeal. If the weather is warm, consider opting for some linen shorts or cargo shorts to keep things relaxed and comfortable. Finish off the look with stylish boat shoes or deck shoes for a laid-back yet polished ensemble.\n\nAre you leaning towards jeans or shorts for this outfit? And do you have a specific color palette in mind for your accessories or shoes?",
+          "bot_intent": "The user is seeking outfit suggestions to pair with a white cotton t-shirt for a casual party tomorrow. They are looking for relaxed yet stylish options, considering items like jeans or shorts, and may need to factor in the weather.",
+          "bot_message_id": "bot_2",
+          "timestamp": "2025-07-22T11:18:08.189907"
+        },
+        {
+          "user_input": "what color clothes will look good on me",
+          "bot_response": "A white cotton t-shirt is such a versatile choice for a casual party! To elevate your look, consider pairing it with denim jeans in a light wash for a fresh, laid-back vibe, or opt for navy shorts for a more summery feel. Both options create a clean canvas that allows for fun accessories, like a vibrant belt or a stylish watch, to add a pop of color. For shoes, classic white sneakers or casual loafers will keep the outfit feeling relaxed yet put-together.\n\nAre you leaning towards jeans or shorts for this outfit? And do you have a preferred color palette or style for your accessories?",
+          "bot_intent": "The user, a male, is seeking advice on what color clothes would look good on him, likely in relation to the outfit he is planning to wear with a white cotton t-shirt for a casual party tomorrow. This includes considering color options for jeans or shorts, as well as potential accessories and shoes.",
+          "bot_message_id": "bot_3",
+          "timestamp": "2025-07-22T11:19:35.656160"
+        }
+      ]
+    },
+    "feedback_type": "thumbs_up",
+    "timestamp": "2025-07-22T11:20:16.740819"
+  },
+  {
+    "id": 4,
+    "client_id": "occasion_woman_fashion_1",
+    "transcript": {
+      "occasion_woman_fashion_1": [
+        {
+          "user_input": "what should I wear to a party tonight",
+          "bot_response": "",
+          "bot_intent": "The user is seeking outfit suggestions for a party they are attending tonight.",
+          "bot_message_id": "bot_0",
+          "timestamp": "2025-07-22T11:25:13.302624"
+        },
+        {
+          "user_input": "show me more casual outfits",
+          "bot_response": "Casual outfits are a fantastic choice for a party, especially when you want to feel relaxed yet stylish! Imagine pairing those Vintage Wash Skinny Jeans with a soft Cotton Basic T-Shirt for a laid-back vibe, or perhaps the Graphic T-Shirt for a fun pop of personality. Finish off the look with some trendy sneakers or ankle boots to keep it comfortable while still looking chic. \n\nAre you leaning towards a specific color palette or vibe for the party? And do you prefer a more fitted look or something a bit looser and relaxed?",
+          "bot_intent": "The user, a female, is seeking more casual outfit suggestions for a party they are attending tonight, moving away from the previously recommended formal options.",
+          "bot_message_id": "bot_1",
+          "timestamp": "2025-07-22T11:26:38.643356"
+        },
+        {
+          "user_input": "what makeup should I wear",
+          "bot_response": "For a casual party tonight, you want your makeup to be fun and vibrant, just like the atmosphere! A bold matte lipstick from your recent picks would be a fantastic choice to make your lips pop, while a swipe of waterproof mascara will ensure your eyes stay stunning all night long, even if the dance floor gets a little sweaty. To tie it all together, consider an eyeshadow palette that allows you to play with colors that complement your outfit, adding that perfect touch of glam. \n\nAre you leaning towards a particular color scheme for your makeup, or do you want to keep it more neutral? And do you have a specific vibe in mind for your look—more playful or sophisticated?",
+          "bot_intent": "The user is seeking makeup recommendations for a casual party they are attending tonight, following their earlier outfit considerations.",
+          "bot_message_id": "bot_2",
+          "timestamp": "2025-07-22T11:27:29.647646"
+        },
+        {
+          "user_input": "how do I apply waterproof mascara",
+          "bot_response": "Applying waterproof mascara is a fantastic way to ensure your lashes stay fabulous throughout the night, especially for a fun casual party! Start by curling your lashes to give them that extra lift, then gently wiggle the mascara wand at the base of your lashes and sweep upward. This technique helps to create volume and length while keeping everything in place, even if the night gets a little wild! \n\nTo complement your vibrant makeup look, consider pairing the mascara with a bold highlighter for that radiant glow. Are you thinking of any specific colors for your outfit, or do you have a particular vibe in mind for your overall look?",
+          "bot_intent": "The user is seeking guidance on how to apply waterproof mascara, likely in preparation for a casual party they are attending tonight. They are interested in achieving a fun and vibrant makeup look that complements their outfit.",
+          "bot_message_id": "bot_3",
+          "timestamp": "2025-07-22T11:28:07.685865"
+        }
+      ]
+    },
+    "feedback_type": "thumbs_up",
+    "timestamp": "2025-07-22T11:28:45.686412"
+  },
+  {
+    "id": 5,
+    "client_id": "occasion_woman_bpc_1",
+    "transcript": {
+      "occasion_woman_bpc_1": [
+        {
+          "user_input": "planning trip to italy",
+          "bot_response": "That sounds exciting! Italy is a beautiful destination. Are you looking for specific outfit ideas for different activities, or do you need suggestions on what to pack for the climate and locations you'll be visiting?",
+          "bot_intent": "The user is planning a trip to Italy and may be seeking recommendations for outfits, accessories, or beauty products suitable for their travels.",
+          "bot_message_id": "bot_0",
+          "timestamp": "2025-07-22T11:46:02.959721"
+        },
+        {
+          "user_input": "show me some clothes I can wear to italy and tell me some info about the place",
+          "bot_response": "",
+          "bot_intent": "The user is looking for clothing recommendations suitable for their trip to Italy and is also interested in information about the destination itself. They want outfit ideas that align with the sunny and casual atmosphere of Italy, potentially including dresses, t-shirts, jeans, and accessories.",
+          "bot_message_id": "bot_1",
+          "timestamp": "2025-07-22T11:46:51.392102"
+        },
+        {
+          "user_input": "what makeup can I wear while roaming in rome",
+          "bot_response": "Roaming in Rome sounds delightful! For a sunny day, consider a light and fresh makeup look that enhances your natural beauty. Think about using a tinted moisturizer or lightweight foundation, a touch of blush for a healthy glow, and waterproof mascara to withstand any unexpected splashes. Would you like suggestions for specific products or tips on how to achieve this look?",
+          "bot_intent": "The user is looking for makeup recommendations suitable for roaming in Rome during her upcoming trip to Italy. She is interested in options that complement her sunny and casual outfits, which include breezy dresses and comfortable attire.",
+          "bot_message_id": "bot_2",
+          "timestamp": "2025-07-22T11:48:02.089218"
+        },
+        {
+          "user_input": "what sort of fabric should I wear in amalfi coast",
+          "bot_response": "",
+          "bot_intent": "The user is seeking advice on suitable fabric choices for her outfits while visiting the Amalfi Coast, Italy, likely to complement her light and fresh makeup look and casual attire.",
+          "bot_message_id": "bot_3",
+          "timestamp": "2025-07-22T11:49:35.719115"
+        }
+      ]
+    },
+    "feedback_type": "thumbs_up",
+    "timestamp": "2025-07-22T11:36:06.267632"
+  },
+  {
+    "id": 6,
+    "client_id": "occasion_woman_bpc_1",
+    "transcript": {
+      "occasion_woman_bpc_1": [
+        {
+          "user_input": "planning trip to italy",
+          "bot_response": "That sounds exciting! Italy is a beautiful destination. Are you looking for specific outfit ideas for different activities, or do you need suggestions on what to pack for the climate and locations you'll be visiting?",
+          "bot_intent": "The user is planning a trip to Italy and may be seeking recommendations for outfits, accessories, or beauty products suitable for their travels.",
+          "bot_message_id": "bot_0",
+          "timestamp": "2025-07-22T11:46:02.959721"
+        },
+        {
+          "user_input": "show me some clothes I can wear to italy and tell me some info about the place",
+          "bot_response": "",
+          "bot_intent": "The user is looking for clothing recommendations suitable for their trip to Italy and is also interested in information about the destination itself. They want outfit ideas that align with the sunny and casual atmosphere of Italy, potentially including dresses, t-shirts, jeans, and accessories.",
+          "bot_message_id": "bot_1",
+          "timestamp": "2025-07-22T11:46:51.392102"
+        },
+        {
+          "user_input": "what makeup can I wear while roaming in rome",
+          "bot_response": "Roaming in Rome sounds delightful! For a sunny day, consider a light and fresh makeup look that enhances your natural beauty. Think about using a tinted moisturizer or lightweight foundation, a touch of blush for a healthy glow, and waterproof mascara to withstand any unexpected splashes. Would you like suggestions for specific products or tips on how to achieve this look?",
+          "bot_intent": "The user is looking for makeup recommendations suitable for roaming in Rome during her upcoming trip to Italy. She is interested in options that complement her sunny and casual outfits, which include breezy dresses and comfortable attire.",
+          "bot_message_id": "bot_2",
+          "timestamp": "2025-07-22T11:48:02.089218"
+        },
+        {
+          "user_input": "what sort of fabric should I wear in amalfi coast",
+          "bot_response": "",
+          "bot_intent": "The user is seeking advice on suitable fabric choices for her outfits while visiting the Amalfi Coast, Italy, likely to complement her light and fresh makeup look and casual attire.",
+          "bot_message_id": "bot_3",
+          "timestamp": "2025-07-22T11:49:35.719115"
+        }
+      ]
+    },
+    "feedback_type": "thumbs_up",
+    "timestamp": "2025-07-22T11:45:01.075607"
+  },
+  {
+    "id": 7,
+    "client_id": "occasion_woman_bpc_1",
+    "transcript": {
+      "occasion_woman_bpc_1": [
+        {
+          "user_input": "planning trip to italy",
+          "bot_response": "That sounds exciting! Italy is a beautiful destination. Are you looking for specific outfit ideas for different activities, or do you need suggestions on what to pack for the climate and locations you'll be visiting?",
+          "bot_intent": "The user is planning a trip to Italy and may be seeking recommendations for outfits, accessories, or beauty products suitable for their travels.",
+          "bot_message_id": "bot_0",
+          "timestamp": "2025-07-22T11:46:02.959721"
+        },
+        {
+          "user_input": "show me some clothes I can wear to italy and tell me some info about the place",
+          "bot_response": "",
+          "bot_intent": "The user is looking for clothing recommendations suitable for their trip to Italy and is also interested in information about the destination itself. They want outfit ideas that align with the sunny and casual atmosphere of Italy, potentially including dresses, t-shirts, jeans, and accessories.",
+          "bot_message_id": "bot_1",
+          "timestamp": "2025-07-22T11:46:51.392102"
+        },
+        {
+          "user_input": "what makeup can I wear while roaming in rome",
+          "bot_response": "Roaming in Rome sounds delightful! For a sunny day, consider a light and fresh makeup look that enhances your natural beauty. Think about using a tinted moisturizer or lightweight foundation, a touch of blush for a healthy glow, and waterproof mascara to withstand any unexpected splashes. Would you like suggestions for specific products or tips on how to achieve this look?",
+          "bot_intent": "The user is looking for makeup recommendations suitable for roaming in Rome during her upcoming trip to Italy. She is interested in options that complement her sunny and casual outfits, which include breezy dresses and comfortable attire.",
+          "bot_message_id": "bot_2",
+          "timestamp": "2025-07-22T11:48:02.089218"
+        },
+        {
+          "user_input": "what sort of fabric should I wear in amalfi coast",
+          "bot_response": "",
+          "bot_intent": "The user is seeking advice on suitable fabric choices for her outfits while visiting the Amalfi Coast, Italy, likely to complement her light and fresh makeup look and casual attire.",
+          "bot_message_id": "bot_3",
+          "timestamp": "2025-07-22T11:49:35.719115"
+        }
+      ]
+    },
+    "feedback_type": "thumbs_up",
+    "timestamp": "2025-07-22T11:51:47.756782"
+  },
+  {
+    "id": 8,
+    "client_id": "occasion_woman_bpc_1",
+    "transcript": {
+      "occasion_woman_bpc_1": [
+        {
+          "user_input": "planning trip to italy",
+          "bot_response": "That sounds exciting! Italy is a beautiful destination. Are you looking for specific outfit ideas for different activities, or do you need suggestions on what to pack for the climate and locations you'll be visiting?",
+          "bot_intent": "The user is planning a trip to Italy and may be seeking recommendations for outfits, accessories, or beauty products suitable for their travels.",
+          "bot_message_id": "bot_0",
+          "timestamp": "2025-07-22T11:46:02.959721"
+        },
+        {
+          "user_input": "show me some clothes I can wear to italy and tell me some info about the place",
+          "bot_response": "",
+          "bot_intent": "The user is looking for clothing recommendations suitable for their trip to Italy and is also interested in information about the destination itself. They want outfit ideas that align with the sunny and casual atmosphere of Italy, potentially including dresses, t-shirts, jeans, and accessories.",
+          "bot_message_id": "bot_1",
+          "timestamp": "2025-07-22T11:46:51.392102"
+        },
+        {
+          "user_input": "what makeup can I wear while roaming in rome",
+          "bot_response": "Roaming in Rome sounds delightful! For a sunny day, consider a light and fresh makeup look that enhances your natural beauty. Think about using a tinted moisturizer or lightweight foundation, a touch of blush for a healthy glow, and waterproof mascara to withstand any unexpected splashes. Would you like suggestions for specific products or tips on how to achieve this look?",
+          "bot_intent": "The user is looking for makeup recommendations suitable for roaming in Rome during her upcoming trip to Italy. She is interested in options that complement her sunny and casual outfits, which include breezy dresses and comfortable attire.",
+          "bot_message_id": "bot_2",
+          "timestamp": "2025-07-22T11:48:02.089218"
+        },
+        {
+          "user_input": "what sort of fabric should I wear in amalfi coast",
+          "bot_response": "",
+          "bot_intent": "The user is seeking advice on suitable fabric choices for her outfits while visiting the Amalfi Coast, Italy, likely to complement her light and fresh makeup look and casual attire.",
+          "bot_message_id": "bot_3",
+          "timestamp": "2025-07-22T11:49:35.719115"
+        }
+      ]
+    },
+    "feedback_type": "thumbs_up",
+    "timestamp": "2025-07-22T11:51:48.624085"
+  },
+  {
+    "id": 9,
+    "client_id": "vacation_man_fashion_1",
+    "transcript": {
+      "vacation_man_fashion_1": [
+        {
+          "user_input": "planning trip to italy",
+          "bot_response": "That sounds exciting! Italy is a beautiful destination. Are you looking for specific outfit ideas for different activities, or do you need suggestions on what to pack for the climate and locations you'll be visiting?",
+          "bot_intent": "The user is planning a trip to Italy and may be seeking recommendations for outfits, accessories, or beauty products suitable for their travels.",
+          "bot_message_id": "bot_0",
+          "timestamp": "2025-07-22T11:46:02.959721"
+        },
+        {
+          "user_input": "show me some clothes I can wear to italy and tell me some info about the place",
+          "bot_response": "",
+          "bot_intent": "The user is looking for clothing recommendations suitable for their trip to Italy and is also interested in information about the destination itself. They want outfit ideas that align with the sunny and casual atmosphere of Italy, potentially including dresses, t-shirts, jeans, and accessories.",
+          "bot_message_id": "bot_1",
+          "timestamp": "2025-07-22T11:46:51.392102"
+        },
+        {
+          "user_input": "what makeup can I wear while roaming in rome",
+          "bot_response": "Roaming in Rome sounds delightful! For a sunny day, consider a light and fresh makeup look that enhances your natural beauty. Think about using a tinted moisturizer or lightweight foundation, a touch of blush for a healthy glow, and waterproof mascara to withstand any unexpected splashes. Would you like suggestions for specific products or tips on how to achieve this look?",
+          "bot_intent": "The user is looking for makeup recommendations suitable for roaming in Rome during her upcoming trip to Italy. She is interested in options that complement her sunny and casual outfits, which include breezy dresses and comfortable attire.",
+          "bot_message_id": "bot_2",
+          "timestamp": "2025-07-22T11:48:02.089218"
+        },
+        {
+          "user_input": "what sort of fabric should I wear in amalfi coast",
+          "bot_response": "",
+          "bot_intent": "The user is seeking advice on suitable fabric choices for her outfits while visiting the Amalfi Coast, Italy, likely to complement her light and fresh makeup look and casual attire.",
+          "bot_message_id": "bot_3",
+          "timestamp": "2025-07-22T11:49:35.719115"
+        }
+      ]
+    },
+    "feedback_type": "thumbs_up",
+    "timestamp": "2025-07-22T11:51:49.332190"
+  },
+  {
+    "id": 10,
+    "client_id": "vacation_woman_bpc_1",
+    "transcript": {
+      "vacation_woman_bpc_1": [
+        {
+          "user_input": "what can I wear with green pants",
+          "bot_response": "",
+          "bot_intent": "The user is seeking outfit suggestions to pair with green pants, looking for complementary clothing items or styles.",
+          "bot_message_id": "bot_0",
+          "timestamp": "2025-07-22T16:42:56.727250"
+        },
+        {
+          "user_input": "what footwear would complete this outfit",
+          "bot_response": "Sneakers, loafers, and sandals are all excellent footwear options that can complement green pants for casual or smart-casual occasions. The color tags like white, beige, and brown provide versatile pairing options, while materials like cotton and leather ensure comfort and style. The mood descriptors highlight the casual yet trendy vibe that aligns with the user's outfit choice.",
+          "bot_intent": "The user is seeking footwear recommendations to complete an outfit featuring green pants, aiming for options that are suitable for casual or smart-casual occasions.",
+          "bot_message_id": "bot_1",
+          "timestamp": "2025-07-22T16:45:14.322070"
+        },
+        {
+          "user_input": "what shoes are good for football",
+          "bot_response": "Great question! When looking for football shoes, it's important to consider the type of surface you'll be playing on (grass, turf, or indoor) and your playing style. I apologize for not having specific recommendations, but it's essential to think about whether you prefer something lightweight for speed or more supportive for stability.",
+          "bot_intent": "The user is now seeking recommendations for football shoes.",
+          "bot_message_id": "bot_2",
+          "timestamp": "2025-07-22T16:45:52.645917"
+        }
+      ]
+    },
+    "feedback_type": "thumbs_up",
+    "timestamp": "2025-07-22T16:41:22.928805"
+  },
+  {
+    "id": 11,
+    "client_id": "vacation_woman_bpc_1",
+    "transcript": {
+      "vacation_woman_bpc_1": [
+        {
+          "user_input": "what can I wear with green pants",
+          "bot_response": "",
+          "bot_intent": "The user is seeking outfit suggestions to pair with green pants, looking for complementary clothing items or styles.",
+          "bot_message_id": "bot_0",
+          "timestamp": "2025-07-22T16:42:56.727250"
+        },
+        {
+          "user_input": "what footwear would complete this outfit",
+          "bot_response": "Sneakers, loafers, and sandals are all excellent footwear options that can complement green pants for casual or smart-casual occasions. The color tags like white, beige, and brown provide versatile pairing options, while materials like cotton and leather ensure comfort and style. The mood descriptors highlight the casual yet trendy vibe that aligns with the user's outfit choice.",
+          "bot_intent": "The user is seeking footwear recommendations to complete an outfit featuring green pants, aiming for options that are suitable for casual or smart-casual occasions.",
+          "bot_message_id": "bot_1",
+          "timestamp": "2025-07-22T16:45:14.322070"
+        },
+        {
+          "user_input": "what shoes are good for football",
+          "bot_response": "Great question! When looking for football shoes, it's important to consider the type of surface you'll be playing on (grass, turf, or indoor) and your playing style. I apologize for not having specific recommendations, but it's essential to think about whether you prefer something lightweight for speed or more supportive for stability.",
+          "bot_intent": "The user is now seeking recommendations for football shoes.",
+          "bot_message_id": "bot_2",
+          "timestamp": "2025-07-22T16:45:52.645917"
+        }
+      ]
+    },
+    "feedback_type": "thumbs_up",
+    "timestamp": "2025-07-22T16:46:18.923457"
+  },
+  {
+    "id": 12,
+    "client_id": "pairing_woman_bpc_1",
+    "transcript": {
+      "pairing_woman_bpc_1": [
+        {
+          "user_input": "what lipsticks go well with red blush",
+          "bot_response": "These lipstick options are chosen to complement red blush by either matching or contrasting the color effectively. Shades like nude and berry can enhance the natural glow provided by red blush, while finishes like glossy or matte can add dimension to the overall look. The selected subcategories focus on makeup and lip care, which are essential for achieving a polished appearance that pairs well with the red blush.",
+          "bot_intent": "The user is seeking recommendations for lipsticks that complement red blush.",
+          "bot_message_id": "bot_0",
+          "timestamp": "2025-07-22T16:54:03.170166"
+        },
+        {
+          "user_input": "what makeup will look good with a blue dress",
+          "bot_response": "",
+          "bot_intent": "The user is seeking makeup recommendations that will complement a blue dress, focusing on achieving a polished look.",
+          "bot_message_id": "bot_1",
+          "timestamp": "2025-07-22T16:54:45.437475"
+        },
+        {
+          "user_input": "what clothes can i wear to a party with smoky eye makeup",
+          "bot_response": "For a party where you're rocking a smoky eye makeup look, you'll want an outfit that feels equally striking and sophisticated. Consider a sleek blush pink satin slip dress that drapes beautifully over your hourglass figure, perfectly complementing your light skin tone. Pair it with some elegant champagne satin pumps to elevate the ensemble, and don't forget a statement necklace or earrings to add that extra touch of glamour. This combination will not only highlight your makeup but also ensure you feel confident and chic throughout the night!\n\nAre you leaning towards a dress or would you prefer to mix and match separates? And do you have a specific vibe in mind for the party, like formal or more relaxed?",
+          "bot_intent": "The user is looking for clothing options to wear to a party that will complement their smoky eye makeup. They are seeking stylish and appropriate outfit ideas that align with a polished and elegant look, considering their light skin tone and hourglass body type.",
+          "bot_message_id": "bot_2",
+          "timestamp": "2025-07-22T17:01:25.781387"
+        }
+      ]
+    },
+    "feedback_type": "thumbs_up",
+    "timestamp": "2025-07-22T17:02:30.831199"
+  },
+  {
+    "id": 13,
+    "client_id": "pairing_woman_bpc_1",
+    "transcript": {
+      "pairing_woman_bpc_1": [
+        {
+          "user_input": "what lipsticks go well with red blush",
+          "bot_response": "These lipstick options are chosen to complement red blush by either matching or contrasting the color effectively. Shades like nude and berry can enhance the natural glow provided by red blush, while finishes like glossy or matte can add dimension to the overall look. The selected subcategories focus on makeup and lip care, which are essential for achieving a polished appearance that pairs well with the red blush.",
+          "bot_intent": "The user is seeking recommendations for lipsticks that complement red blush.",
+          "bot_message_id": "bot_0",
+          "timestamp": "2025-07-22T16:54:03.170166"
+        },
+        {
+          "user_input": "what makeup will look good with a blue dress",
+          "bot_response": "",
+          "bot_intent": "The user is seeking makeup recommendations that will complement a blue dress, focusing on achieving a polished look.",
+          "bot_message_id": "bot_1",
+          "timestamp": "2025-07-22T16:54:45.437475"
+        },
+        {
+          "user_input": "what clothes can i wear to a party with smoky eye makeup",
+          "bot_response": "For a party where you're rocking a smoky eye makeup look, you'll want an outfit that feels equally striking and sophisticated. Consider a sleek blush pink satin slip dress that drapes beautifully over your hourglass figure, perfectly complementing your light skin tone. Pair it with some elegant champagne satin pumps to elevate the ensemble, and don't forget a statement necklace or earrings to add that extra touch of glamour. This combination will not only highlight your makeup but also ensure you feel confident and chic throughout the night!\n\nAre you leaning towards a dress or would you prefer to mix and match separates? And do you have a specific vibe in mind for the party, like formal or more relaxed?",
+          "bot_intent": "The user is looking for clothing options to wear to a party that will complement their smoky eye makeup. They are seeking stylish and appropriate outfit ideas that align with a polished and elegant look, considering their light skin tone and hourglass body type.",
+          "bot_message_id": "bot_2",
+          "timestamp": "2025-07-22T17:01:25.781387"
+        }
+      ]
+    },
+    "feedback_type": "thumbs_up",
+    "timestamp": "2025-07-22T17:03:18.502264"
+  },
+  {
+    "id": 14,
+    "client_id": "pairing_woman_bpc_1",
+    "transcript": {
+      "pairing_woman_bpc_1": [
+        {
+          "user_input": "what lipsticks go well with red blush",
+          "bot_response": "These lipstick options are chosen to complement red blush by either matching or contrasting the color effectively. Shades like nude and berry can enhance the natural glow provided by red blush, while finishes like glossy or matte can add dimension to the overall look. The selected subcategories focus on makeup and lip care, which are essential for achieving a polished appearance that pairs well with the red blush.",
+          "bot_intent": "The user is seeking recommendations for lipsticks that complement red blush.",
+          "bot_message_id": "bot_0",
+          "timestamp": "2025-07-22T16:54:03.170166"
+        },
+        {
+          "user_input": "what makeup will look good with a blue dress",
+          "bot_response": "",
+          "bot_intent": "The user is seeking makeup recommendations that will complement a blue dress, focusing on achieving a polished look.",
+          "bot_message_id": "bot_1",
+          "timestamp": "2025-07-22T16:54:45.437475"
+        },
+        {
+          "user_input": "what clothes can i wear to a party with smoky eye makeup",
+          "bot_response": "For a party where you're rocking a smoky eye makeup look, you'll want an outfit that feels equally striking and sophisticated. Consider a sleek blush pink satin slip dress that drapes beautifully over your hourglass figure, perfectly complementing your light skin tone. Pair it with some elegant champagne satin pumps to elevate the ensemble, and don't forget a statement necklace or earrings to add that extra touch of glamour. This combination will not only highlight your makeup but also ensure you feel confident and chic throughout the night!\n\nAre you leaning towards a dress or would you prefer to mix and match separates? And do you have a specific vibe in mind for the party, like formal or more relaxed?",
+          "bot_intent": "The user is looking for clothing options to wear to a party that will complement their smoky eye makeup. They are seeking stylish and appropriate outfit ideas that align with a polished and elegant look, considering their light skin tone and hourglass body type.",
+          "bot_message_id": "bot_2",
+          "timestamp": "2025-07-22T17:01:25.781387"
+        }
+      ]
+    },
+    "feedback_type": "thumbs_up",
+    "timestamp": "2025-07-22T17:03:20.037662"
+  },
+  {
+    "id": 15,
+    "client_id": "pairing_woman_bpc_1",
+    "transcript": {
+      "pairing_woman_bpc_1": [
+        {
+          "user_input": "what lipsticks go well with red blush",
+          "bot_response": "These lipstick options are chosen to complement red blush by either matching or contrasting the color effectively. Shades like nude and berry can enhance the natural glow provided by red blush, while finishes like glossy or matte can add dimension to the overall look. The selected subcategories focus on makeup and lip care, which are essential for achieving a polished appearance that pairs well with the red blush.",
+          "bot_intent": "The user is seeking recommendations for lipsticks that complement red blush.",
+          "bot_message_id": "bot_0",
+          "timestamp": "2025-07-22T16:54:03.170166"
+        },
+        {
+          "user_input": "what makeup will look good with a blue dress",
+          "bot_response": "",
+          "bot_intent": "The user is seeking makeup recommendations that will complement a blue dress, focusing on achieving a polished look.",
+          "bot_message_id": "bot_1",
+          "timestamp": "2025-07-22T16:54:45.437475"
+        },
+        {
+          "user_input": "what clothes can i wear to a party with smoky eye makeup",
+          "bot_response": "For a party where you're rocking a smoky eye makeup look, you'll want an outfit that feels equally striking and sophisticated. Consider a sleek blush pink satin slip dress that drapes beautifully over your hourglass figure, perfectly complementing your light skin tone. Pair it with some elegant champagne satin pumps to elevate the ensemble, and don't forget a statement necklace or earrings to add that extra touch of glamour. This combination will not only highlight your makeup but also ensure you feel confident and chic throughout the night!\n\nAre you leaning towards a dress or would you prefer to mix and match separates? And do you have a specific vibe in mind for the party, like formal or more relaxed?",
+          "bot_intent": "The user is looking for clothing options to wear to a party that will complement their smoky eye makeup. They are seeking stylish and appropriate outfit ideas that align with a polished and elegant look, considering their light skin tone and hourglass body type.",
+          "bot_message_id": "bot_2",
+          "timestamp": "2025-07-22T17:01:25.781387"
+        }
+      ]
+    },
+    "feedback_type": "thumbs_up",
+    "timestamp": "2025-07-22T17:03:20.217356"
+  },
+  {
+    "id": 16,
+    "client_id": "stlying_man_fashion_1",
+    "transcript": {
+      "stlying_man_fashion_1": [
+        {
+          "user_input": "would a green polo tshirt and jeans look good on me",
+          "bot_response": "",
+          "bot_intent": "The user is seeking advice on whether a green polo t-shirt paired with jeans would be a good outfit choice for them.",
+          "bot_message_id": "bot_0",
+          "timestamp": "2025-07-22T17:05:38.436732"
+        },
+        {
+          "user_input": "what if I added a blue denim jacket to it",
+          "bot_response": "Adding a blue denim jacket to your green polo t-shirt and jeans creates a stylish layered look that is both casual and modern. The denim jacket adds texture and structure, while the colors complement each other well. Sneakers or loafers would enhance the casual vibe, and accessories like a belt or watch can add a polished touch to the outfit.",
+          "bot_intent": "The user is considering adding a blue denim jacket to his outfit of a green polo t-shirt and jeans. He is seeking advice on how this addition would enhance the overall look.",
+          "bot_message_id": "bot_1",
+          "timestamp": "2025-07-22T17:07:42.966095"
+        },
+        {
+          "user_input": "I am planning to wear the green tshirt and jeans to a party tonight",
+          "bot_response": "That green t-shirt and jeans combo sounds like a fantastic choice for a party! Pairing it with a blue denim jacket will not only add a stylish layer but also create a nice contrast that keeps the look fresh and modern. For footwear, I recommend going with silver metallic sneakers to elevate your outfit while keeping it casual and fun—perfect for a party atmosphere. Don’t forget to accessorize with a sleek belt and a stylish watch to tie everything together and add a touch of personality!\n\nAre you leaning towards a more casual vibe, or do you want to dress it up a bit more? And what’s the weather like tonight?",
+          "bot_intent": "The user, a male, is planning to wear a green t-shirt and jeans to a party tonight and is seeking advice on how to incorporate a blue denim jacket into his outfit. He is also open to suggestions for suitable footwear, such as sneakers or loafers, and accessories like a belt or watch to enhance his casual and modern style.",
+          "bot_message_id": "bot_2",
+          "timestamp": "2025-07-22T17:09:20.445554"
+        },
+        {
+          "user_input": "itll be a little chilly",
+          "bot_response": "It sounds like you're gearing up for a fun evening, and with a little chill in the air, we want to keep you stylish and cozy! Pairing your green t-shirt and blue denim jacket with silver metallic sneakers will add a trendy touch while keeping things casual. If you want to elevate your look a bit, loafers could work beautifully too, adding a polished vibe without sacrificing comfort. To stay warm, consider layering with a lightweight scarf, like a charcoal merino wool scarf, which will not only keep you snug but also add a chic element to your outfit. \n\nAre you leaning more towards a casual vibe with the sneakers, or do you want to dress it up a bit with the loafers? And do you have any specific accessories in mind that you'd like to incorporate?",
+          "bot_intent": "The user is preparing for a party tonight and is looking for footwear options to pair with his green t-shirt, blue denim jacket, and jeans, considering silver metallic sneakers, loafers, or other casual styles. He has mentioned that it will be a little chilly, indicating a need for suitable footwear and possibly additional layers or accessories to stay warm.",
+          "bot_message_id": "bot_3",
+          "timestamp": "2025-07-22T17:10:11.661454"
+        }
+      ]
+    },
+    "feedback_type": "thumbs_up",
+    "timestamp": "2025-07-22T17:10:27.900893"
+  },
+  {
+    "id": 17,
+    "client_id": "stlying_man_fashion_1",
+    "transcript": {
+      "stlying_man_fashion_1": [
+        {
+          "user_input": "will this outfit look good on me",
+          "bot_response": "",
+          "bot_intent": "The user is seeking feedback on whether a specific outfit will look good on them, but no details about the outfit or context have been provided.",
+          "bot_message_id": "bot_0",
+          "timestamp": "2025-07-22T17:28:59.447352"
+        },
+        {
+          "user_input": "what shoes should I wear with this",
+          "bot_response": "The suggested footwear options like ankle boots, strappy sandals, and chunky sneakers will enhance the user's denim blue crop top and navy jeans outfit while complementing her hourglass figure. These styles provide a balance between casual and chic, allowing for versatility in different settings. The color tags are chosen to harmonize with the denim hues, while the material and style descriptors reflect a modern and effortless vibe that aligns with the overall look.",
+          "bot_intent": "The user is asking for shoe recommendations to pair with her denim blue crop top and navy jeans outfit, seeking options that will complement her hourglass figure and enhance her overall look.",
+          "bot_message_id": "bot_1",
+          "timestamp": "2025-07-22T17:31:20.446062"
+        },
+        {
+          "user_input": "what type of makeup should I wear",
+          "bot_response": "Your denim blue crop top and navy jeans create a chic and casual look that perfectly suits your hourglass figure and dark skin tone. The colors harmonize beautifully, enhancing your overall appearance.\n\nWhat Works:\nThe crop top accentuates your waist while the navy jeans provide a sleek silhouette, making your outfit both flattering and stylish.\n\nHow to make it better:\nConsider adding a touch of makeup that complements the colors of your outfit to elevate your look further.\n\nStyling Hacks:\n1. Warm-toned eyeshadow palette\n2. Soft bronze highlighter\n3. Nude lip color\n4. Lightweight mascara\n5. Natural-looking brow gel",
+          "bot_intent": "The user is seeking makeup recommendations that would complement her outfit of a denim blue crop top and navy jeans. She is looking for options that enhance her overall look, likely considering the casual yet chic style she aims to achieve with her footwear choices.",
+          "bot_message_id": "bot_2",
+          "timestamp": "2025-07-22T17:32:42.266487"
+        }
+      ]
+    },
+    "feedback_type": "thumbs_up",
+    "timestamp": "2025-07-22T17:19:48.161382"
+  },
+  {
+    "id": 18,
+    "client_id": "stlying_man_fashion_1",
+    "transcript": {
+      "stlying_man_fashion_1": [
+        {
+          "user_input": "will this outfit look good on me",
+          "bot_response": "",
+          "bot_intent": "The user is seeking feedback on whether a specific outfit will look good on them, but no details about the outfit or context have been provided.",
+          "bot_message_id": "bot_0",
+          "timestamp": "2025-07-22T17:28:59.447352"
+        },
+        {
+          "user_input": "what shoes should I wear with this",
+          "bot_response": "The suggested footwear options like ankle boots, strappy sandals, and chunky sneakers will enhance the user's denim blue crop top and navy jeans outfit while complementing her hourglass figure. These styles provide a balance between casual and chic, allowing for versatility in different settings. The color tags are chosen to harmonize with the denim hues, while the material and style descriptors reflect a modern and effortless vibe that aligns with the overall look.",
+          "bot_intent": "The user is asking for shoe recommendations to pair with her denim blue crop top and navy jeans outfit, seeking options that will complement her hourglass figure and enhance her overall look.",
+          "bot_message_id": "bot_1",
+          "timestamp": "2025-07-22T17:31:20.446062"
+        },
+        {
+          "user_input": "what type of makeup should I wear",
+          "bot_response": "Your denim blue crop top and navy jeans create a chic and casual look that perfectly suits your hourglass figure and dark skin tone. The colors harmonize beautifully, enhancing your overall appearance.\n\nWhat Works:\nThe crop top accentuates your waist while the navy jeans provide a sleek silhouette, making your outfit both flattering and stylish.\n\nHow to make it better:\nConsider adding a touch of makeup that complements the colors of your outfit to elevate your look further.\n\nStyling Hacks:\n1. Warm-toned eyeshadow palette\n2. Soft bronze highlighter\n3. Nude lip color\n4. Lightweight mascara\n5. Natural-looking brow gel",
+          "bot_intent": "The user is seeking makeup recommendations that would complement her outfit of a denim blue crop top and navy jeans. She is looking for options that enhance her overall look, likely considering the casual yet chic style she aims to achieve with her footwear choices.",
+          "bot_message_id": "bot_2",
+          "timestamp": "2025-07-22T17:32:42.266487"
+        }
+      ]
+    },
+    "feedback_type": "thumbs_up",
+    "timestamp": "2025-07-22T17:27:29.404721"
+  },
+  {
+    "id": 19,
+    "client_id": "stlying_image_woman_fashion_1",
+    "transcript": {
+      "stlying_image_woman_fashion_1": [
+        {
+          "user_input": "will this outfit look good on me",
+          "bot_response": "",
+          "bot_intent": "The user is seeking feedback on whether a specific outfit will look good on them, but no details about the outfit or context have been provided.",
+          "bot_message_id": "bot_0",
+          "timestamp": "2025-07-22T17:28:59.447352"
+        },
+        {
+          "user_input": "what shoes should I wear with this",
+          "bot_response": "The suggested footwear options like ankle boots, strappy sandals, and chunky sneakers will enhance the user's denim blue crop top and navy jeans outfit while complementing her hourglass figure. These styles provide a balance between casual and chic, allowing for versatility in different settings. The color tags are chosen to harmonize with the denim hues, while the material and style descriptors reflect a modern and effortless vibe that aligns with the overall look.",
+          "bot_intent": "The user is asking for shoe recommendations to pair with her denim blue crop top and navy jeans outfit, seeking options that will complement her hourglass figure and enhance her overall look.",
+          "bot_message_id": "bot_1",
+          "timestamp": "2025-07-22T17:31:20.446062"
+        },
+        {
+          "user_input": "what type of makeup should I wear",
+          "bot_response": "Your denim blue crop top and navy jeans create a chic and casual look that perfectly suits your hourglass figure and dark skin tone. The colors harmonize beautifully, enhancing your overall appearance.\n\nWhat Works:\nThe crop top accentuates your waist while the navy jeans provide a sleek silhouette, making your outfit both flattering and stylish.\n\nHow to make it better:\nConsider adding a touch of makeup that complements the colors of your outfit to elevate your look further.\n\nStyling Hacks:\n1. Warm-toned eyeshadow palette\n2. Soft bronze highlighter\n3. Nude lip color\n4. Lightweight mascara\n5. Natural-looking brow gel",
+          "bot_intent": "The user is seeking makeup recommendations that would complement her outfit of a denim blue crop top and navy jeans. She is looking for options that enhance her overall look, likely considering the casual yet chic style she aims to achieve with her footwear choices.",
+          "bot_message_id": "bot_2",
+          "timestamp": "2025-07-22T17:32:42.266487"
+        }
+      ]
+    },
+    "feedback_type": "thumbs_up",
+    "timestamp": "2025-07-22T17:33:49.892418"
   }
 ]

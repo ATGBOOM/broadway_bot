@@ -93,7 +93,7 @@ SUB CATEGORIES AVAILABLE : {subcategories}
      - If the user asks *"what goes with black jeans"* → include jackets, shoes, tops, accessories, etc.
      - If the user says *"what shoes go with black jeans"* → restrict to only footwear-related subcategories
      - Use only real subcategories provided
-
+4. Create a reasoning on what would go well with the item and why.
 ---
 
 **RESPONSE FORMAT (STRICT JSON ONLY):**
@@ -105,6 +105,7 @@ SUB CATEGORIES AVAILABLE : {subcategories}
   "subcategories": [
     "subcategory1", "subcategory2", ...
   ]
+  "reasoning" : "Provide a brief explanation of why these items complement the user's query."
 }}
 """
 
@@ -115,7 +116,7 @@ SUB CATEGORIES AVAILABLE : {subcategories}
      
         parameters = json.loads(json_content)
         print(parameters['tags'], parameters['subcategories'])
-        return parameters['tags'], parameters['subcategories']
+        return parameters['tags'], parameters['subcategories'], parameters['reasoning']
 
 
     def getComplementProducts(self, user_query, bot_input):
@@ -123,10 +124,10 @@ SUB CATEGORIES AVAILABLE : {subcategories}
         Retrieves complementary products based on the provided product and tags.
         """
       
-        tags, subcategories = self.getComplementProductTags(user_query, bot_input)
+        tags, subcategories, reasoning = self.getComplementProductTags(user_query, bot_input)
         print("tags are:", tags)
         
-        return self.reccomendations.get_complements( tags, subcategories, user_query, "what will go well with")
+        return reasoning, self.reccomendations.get_complements( tags, subcategories, user_query, "what will go well with")
 
 
     def ask_ai(self, prompt):

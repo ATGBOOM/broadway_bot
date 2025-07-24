@@ -144,7 +144,7 @@ Your core principle is: **The most recent user message holds the most weight.** 
 ---
 ### Step 1: Analyze the Inputs
 
-1.  **Current User Input:** This is the user's newest message. What is the explicit request here? Does it contain keywords related to events, travel, or specific products?
+1.  **Current User Input:** This is the user's newest message. What is the explicit request here? Does it contain keywords related to events, travel, or specific products? If user input is vague then try to rely on the conversation context
 2.  **Conversation Context:** This is the history of the conversation. What was the previous topic? Use this to understand the background, but do not let it overpower the `Current User Input`. For example, if the user was planning a vacation but their *new message* is "I need shoes for a wedding," the intent is now "Occasion," not "Vacation."
 
 ---
@@ -155,27 +155,28 @@ Based on your analysis, choose **ONLY ONE** of the following intents.
 **INTENT DEFINITIONS:**
 
 * **"Vacation"**
-    * **Description:** The user is planning to go on a trip or packing for a trip.
-    * **Trigger Keywords:** "trip," "traveling to," "packing for," "vacation," "holiday," "going to [destination]," "what to wear in [city/country]."
+    * **Description:** The user is planning, packing for, or shopping for a trip, vacation, or holiday. Their needs are contextualized by a destination's climate, culture, or planned activities.
+    * **Trigger Keywords:** "trip to," "traveling to," "packing for," "vacation in," "holiday," "what to wear in [city/country]," "going to [destination]."
     * **Example:** User was looking for sunglasses. Current input is "I'll be going to Goa next month, what else should I pack?" -> **Vacation**.
 
 * **"Occasion"**
-    * **Description:** The user wants to see outfits or items that generally look for a specific event, activity, or function. This is event-driven.
-    * **Trigger Keywords:** "wedding," "party," "interview," "work," "office," "gym," "date night," "formal event," "concert," "festival."
+    * **Description:** The user is looking for outfits or items suitable for a specific event, activity, or dress code. The primary filter for the search is the occasion itself.
+    * **Trigger Keywords:** "wedding," "party," "interview," "work," "office," "gym," "date night," "formal," "black-tie," "brunch," "concert," "graduation."
     * **Example:** User was talking about a trip. Current input is "Thanks! Also, I need a dress for a friend's wedding." -> **Occasion**.
 
 * **"Pairing"**
-    * **Description:** The user has a specific item or product category in mind and wants to find complementary items that match or complete the look. The request is anchored to an existing product.
-    * **Trigger Keywords:** "what goes with," "how to style," "shoes for this dress," "what top for these jeans," "need a bag to match my boots."
+    * **Description:** The user has a specific item and is looking for product recommendations for other items to wear with it. The goal is product discovery. Do not call this if it is a general informational request about styling, fabrics, or weather.
+    * **Trigger Keywords:** "what to wear with," "what goes with," "find a top for," "recommend a shoe for," "I need a bag to match my boots."
     * **Example:** User was shopping for an occasion. Current input is "I just bought these black jeans, what kind of tops would go well with them?" -> **Pairing**.
 
-**"Styling"**
-* **Description:** The user is seeking validation, styling advice, or compatibility assessment for a specific clothing item or occasion. They want to know if something suits them personally based on their body type, skin tone, style preferences, or the occasion. This is focused on personal fit and styling analysis rather than finding new products.
-* **Trigger Keywords:** "looks good on me," "suit me," "flattering," "does this work," "will this look good," "is this right for me," "does this fit my style," "appropriate for my body type," "complements my skin tone," "should I wear this," "does this make me look," "styling advice," "how do I look."
+* **"Styling"**
+    * **Description:** The user is seeking personalized feedback, validation, or styling analysis for themselves. They want to know if an item, outfit, or style will look good *on them*. The query is subjective and centered on the user's personal attributes (body type, height, skin tone, etc.). The focus is on analysis and advice, not product discovery.
+    * **Trigger Keywords:** "suit me," "look good on me," "flattering for my [body type]," "work for me," "should I wear this," "how would this look on me," "is this appropriate for," "does this complement my skin tone," "how should *I* style this."
+    * **Example:** User is viewing a dress. Current input is "I have a pear-shaped body, will this look good on me?" -> **Styling**.
     
 * **"General"**
-    * **Description:** The user's request is broad, ambiguous, or doesn't fit any of the other categories. This intent signals that follow-up questions are needed to clarify their goal.
-    * **Trigger Keywords:** "show me some shirts," "looking for shoes," "any new arrivals?," "I'm bored, show me something cool."
+    * **Description:** This is for purely informational or ambiguous queries. It covers broad questions about styles, trends, or general styling techniques that are not personalized. The expected output is information, not a product recommendation or personal validation.
+    * **Trigger Keywords:** "how do you," "what is," "style guide," "fashion trends," "show me some shirts," "looking for shoes," "any new arrivals?," "I'm bored, show me something cool."
     * **Example:** The conversation is new. Current input is "I want to buy clothes." -> **General**.
 
 ---
@@ -184,8 +185,8 @@ Based on your analysis, choose **ONLY ONE** of the following intents.
 Provide your response in a strict JSON format. Do not add any text outside of the JSON structure.
 
 **INPUTS FOR YOUR ANALYSIS:**
-- **Previous Intent:** `{previous_intent}`
-- **Conversation Context:** `{context}`
+- **Current User Input:** {user_input}
+- **Conversation Context:** {context}
 
 
 **JSON OUTPUT FORMAT:**
@@ -193,9 +194,7 @@ Provide your response in a strict JSON format. Do not add any text outside of th
 {{
   "reasoning": "A brief, one-sentence explanation of your decision-making process, explicitly mentioning how the current user input drove the choice.",
   "intent": "The single, most accurate intent from the list."
-}}
-
-"""
+}} """
 
         response = self._call_ai(prompt).strip()
             
@@ -205,7 +204,7 @@ Provide your response in a strict JSON format. Do not add any text outside of th
         
         if start_idx != -1 and end_idx != 0:
             json_content = json.loads(response[start_idx:end_idx])
-            print(json_content['reasoning'])
+            print("reasoning for intent is", json_content['reasoning'])
             return json_content['intent']
         return 'General'
 

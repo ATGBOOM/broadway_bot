@@ -130,6 +130,10 @@ class FashionWorkflow:
                     "Varies by brand",
                     "Prefer not to say"
                 ]
+            },
+            "image" : {
+                "key" : "image not added",
+                "label": "Please upload an image of your outfit and send message again",
             }
         }
         
@@ -151,6 +155,7 @@ class FashionWorkflow:
         workflow.add_node("handle_vacation", self._handle_vacation)
         workflow.add_node("handle_general", self._handle_general)
         workflow.add_node("handle_styling", self._handle_styling)
+        workflow.add_node("handle_rate", self._handle_rate)
         workflow.add_node("generate_followup", self._generate_followup)
         workflow.add_node("prepare_response", self._prepare_response)
         workflow.add_node("process_bot_response", self._process_bot_response)
@@ -176,7 +181,8 @@ class FashionWorkflow:
                 "pairing": "handle_pairing", 
                 "vacation": "handle_vacation",
                 "general": "handle_general",
-                "styling": "handle_styling"
+                "styling": "handle_styling",
+                "rate" : "handle_rate"
             }
         )
         
@@ -216,6 +222,14 @@ class FashionWorkflow:
                 "complete": "prepare_response"
             }
         )
+        workflow.add_conditional_edges(
+            "handle_rate",
+            self._check_followup_rate_needed,
+            {
+                "followup": "generate_followup",
+                "complete": "prepare_response"
+            }
+        )
         
         workflow.add_edge("handle_general", "prepare_response")
         workflow.add_edge("generate_followup", "prepare_response")
@@ -229,6 +243,8 @@ class FashionWorkflow:
         try:
             intent, context = self.conversation_service.processTurn(state["user_input"], state['user_info']['gender'])
             state["service_mode"] = intent.lower()
+            if state["user_input"].lower() == "rate my otd":
+                state["service_mode"] = "rate"
             state["conversation_history"] = context
             return state
         except Exception as e:
@@ -280,19 +296,14 @@ class FashionWorkflow:
     def _handle_pairing(self, state: FashionState) -> FashionState:
         """Handle pairing mode using your existing logic"""
         try:
-            complements = self.pairing_service.getComplementProducts(
+            reasoning, complements = self.pairing_service.getComplementProducts(
                 state["user_input"], 
                 state["conversation_history"]
             )
             state["recommendations"] = complements
             
-            item_to_pair = state["user_input"].lower().strip()
-            if complements:
-                response_message = f"Perfect! For {item_to_pair}, here are some great pieces that would complement it beautifully. These combinations will create cohesive, stylish looks!"
-            else:
-                response_message = f"I couldn't find specific pairings for '{item_to_pair}'. Could you try describing the item differently? For example: 'blue jeans', 'white shirt', 'black boots', etc."
             
-            state["response_message"] = response_message
+            state["response_message"] = reasoning
             state["follow_up_needed"] = False
                 
             return state
@@ -365,8 +376,61 @@ class FashionWorkflow:
             formatted_text = (
                 f"{str(summary)}\n\n"
                 f"What Works:\n{str(what_works)}\n\n"
-                f"Areas for Improvement:\n{str(improvements)}\n\n"
-                f"Styling Tips:\n"
+                f"How to make it better:\n{str(improvements)}\n\n"
+                f"Styling Hacks:\n"
+                + "\n".join([f"{i+1}. {tip.capitalize()}" for i, tip in enumerate(tips)])
+            )
+
+            print("formatted text is, " + formatted_text)
+            state["recommendations"] = []
+            state["response_message"] = formatted_text
+            state["follow_up_needed"] = False
+            
+            return state
+            
+        except Exception as e:
+            state["error_message"] = f"Error in styling handling: {str(e)}"
+            return state
+        
+    async def _handle_rate(self, state: FashionState) -> FashionState:
+        """Handle styling mode using your existing logic"""
+        try:
+            print("handle rate is called")
+            # FIXED: Initialize user_info if not present
+            if not state['image']:
+                return state
+            if not state.get("user_info"):
+                state["user_info"] = {}
+            
+            result = await self.styling_service.analyze_looks_good_on_me(
+                user_input=state['user_input'],
+                conversation_context=state['conversation_history'],
+                user_info=state["user_info"],
+                product_details={},
+                recs=state.get('recommendations', []),
+                image = state.get('image')
+            )
+
+            print("results are", result)
+                
+            summary = result['user_response']['summary']
+            
+            what_works = result['user_response']['what_works']
+            improvements = result['user_response']['improvement']
+            user_response = result['user_response']
+            adjustments = list(result['user_response']['adjustments'])[:5]
+            tips = list(result['user_response']['stlying_tips'])[:5]
+
+            summary = result['user_response']['summary']
+
+
+            formatted_text = (
+                f"{str(summary)}\n\n"
+                f"What Works:\n{str(what_works)}\n\n"
+                f"Adjustment Tips:\n"
+                + "\n".join([f"{i+1}. {tip.capitalize()}" for i, tip in enumerate(adjustments)])
+                + f"\n\nHow to make it better:\n{str(improvements)}\n\n"
+                f"Styling Hacks:\n"
                 + "\n".join([f"{i+1}. {tip.capitalize()}" for i, tip in enumerate(tips)])
             )
 
@@ -386,6 +450,22 @@ class FashionWorkflow:
 
         
         user_info = state['user_info']
+
+        if state['service_mode'] == 'rate':
+            
+            required_fields = ['body_type', 'skin_tone', 'height', 'style_preferences', 'size_preferences']
+          
+            missing_fields = [field for field in required_fields if not user_info.get(field)]
+            followup_questions = []
+            if not state['image']:
+                followup_questions.append(self.questions['image'])
+            for field in missing_fields:  # Limit to 3 questions
+                if field in self.questions:
+                    followup_questions.append(self.questions[field])
+            
+            if followup_questions:
+                state['follow_up_needed'] = True
+                state['follow_up_message'] = followup_questions
         
         if state['service_mode'] == 'styling':
             
@@ -478,10 +558,32 @@ class FashionWorkflow:
     
     def _decide_service_route(self, state: FashionState) -> str:
         """Decide which service to route to"""
+        if state['user_input'].lower() == 'rate my otd':
+            return state.get("service_mode", "rate")
         return state.get("service_mode", "general")
     
     def _check_followup_needed(self, state: FashionState) -> str:
         """Check if follow-up is needed"""
+        return 'complete'
+    
+    def _check_followup_rate_needed(self, state: FashionState) -> str:
+        """Check if styling followup is needed"""
+        # FIXED: Initialize user_info if not present
+        user_info = state.get('user_info', {})
+        
+        # Check if any required styling info is missing
+        # required_fields = ['body_type', 'skin_tone', 'height', 'style_preferences', 'size_preferences']
+        # print("check followup for styles")
+        # missing_fields = [field for field in required_fields if not user_info.get(field)]
+        # print(user_info)
+        # if len(required_fields) - len(missing_fields) < 2 or not state.get('image'):
+      
+        #     return 'followup'
+        if not state.get('image'):
+            state['follow_up_needed'] = True
+            state['follow_up_message'] = [self.questions['image']]
+            return 'followup'
+        state['image'] = None
         return 'complete'
     
     def _check_followup_style_needed(self, state: FashionState) -> str:
@@ -560,6 +662,7 @@ class ChatSession:
         self.gender = None
         self.user_info = {'gender' : None}
         self.image = None
+        self.user_input = None
         # Initialize LangGraph workflow
         self.fashion_workflow = FashionWorkflow(services_dict)
     
@@ -567,11 +670,13 @@ class ChatSession:
         """Process user input using LangGraph workflow"""
         if followup_data:
             self.user_info.update(followup_data)
-        print("followup data received", followup_data)
+        print("user input received", user_input)
         if image:
             self.image = image
+        if user_input:
+            self.user_input = user_input
         initial_state = FashionState(
-            user_input=user_input,
+            user_input=self.user_input,
             client_id=client_id,
             conversation_history=self.conversation_history,
             service_mode=self.service_mode,
