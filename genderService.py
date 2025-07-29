@@ -44,7 +44,7 @@ PREVIOUSLY KNOWN GENDER:
    - Is **too vague or ambiguous** for gender-based product targeting and requires reccomendations → return **"None"**
 
 4. If a **previously known gender** exists and the current query **still applies to that person**, return that gender — unless the query is about someone else.
-5. If previous gender is not need but current user input needs a gender related query - provide a gender.
+5. If previous gender is not need but current user input needs a gender related query - provide a gender based on the type of product given if its implied.
 ---
 
 ### Return only one of the following (case-sensitive):

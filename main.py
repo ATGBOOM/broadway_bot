@@ -655,7 +655,7 @@ async def get_chat_interface():
             <!DOCTYPE html>
 <html>
 <head>
-    <title>Broadway Fashion Bot</title>
+    <title>Broadway Style Copilot</title>
     <style>
         body { font-family: Arial; margin: 20px; background: #f5f5f5; }
         .chat-container { max-width: 800px; margin: 0 auto; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
@@ -1235,15 +1235,13 @@ async def get_chat_interface():
                     data.image = selectedImageBase64;
                 }
                
-                if (message || selectedImageBase64) {
+                if (selectedImageBase64) {
                     // Create a user message div manually to show image
                     const messagesDiv = document.getElementById('messages');
                     const messageDiv = document.createElement('div');
                     messageDiv.className = 'message user-message';
                     
-                    if (message) {
-                        messageDiv.textContent = message;
-                    }
+                    
                     
                     if (selectedImageBase64) {
                         const imageElement = document.createElement('img');

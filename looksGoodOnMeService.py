@@ -125,6 +125,7 @@ IMPORTANT: Your styling tips will be used as search tags to find complementary p
 - Type: {product_type}
 - Color: {product_color}
 - Description: {product_description}
+If no specific product is mentioned, give the answer based on the type of category the user is asking about do not refer to products that have not been provided.
 
 
 Please provide a comprehensive styling analysis including specific styling tips that can be used to find complementary products.""")
@@ -257,6 +258,7 @@ Please provide a comprehensive styling analysis including specific styling tips 
                     "stlying_tips": result.styling_recommendations.styling_tips,
                     "adjustments": result.styling_recommendations.fit_adjustments,
                     "complementary_pieces": result.styling_recommendations.complementary_pieces,
+                    "occasions" : result.styling_recommendations.occasion_suitability,
                     "what_works" : result.what_works,
                     "improvement" : result.improvement
                 },
@@ -409,7 +411,7 @@ Please provide a comprehensive styling analysis including specific styling tips 
 #     result = await service.analyze_looks_good_on_me(
 #         user_input="Will this green jacket, jeans, and blue tshirt look good on me",
 #         conversation_context="The user is seeking validation on whether the dress suit her, which aligns with the intent of styling advice focused on personal fit and color compatibility.",
-#         user_info=user_info,
+#         user_info=user_info,x
 #         product_details={},#product_details
 #         recs=[], #recs,
         

@@ -181,7 +181,7 @@ class FashionWorkflow:
                 "pairing": "handle_pairing", 
                 "vacation": "handle_vacation",
                 "general": "handle_general",
-                "styling": "handle_styling",
+                "suitme": "handle_styling",
                 "rate" : "handle_rate"
             }
         )
@@ -348,9 +348,7 @@ class FashionWorkflow:
     async def _handle_styling(self, state: FashionState) -> FashionState:
         """Handle styling mode using your existing logic"""
         try:
-            # FIXED: Initialize user_info if not present
-            if not state.get("user_info"):
-                state["user_info"] = {}
+         
             
             result = await self.styling_service.analyze_looks_good_on_me(
                 user_input=state['user_input'],
@@ -365,6 +363,7 @@ class FashionWorkflow:
                 
             summary = result['user_response']['summary']
             tips = list(result['user_response']['stlying_tips'])[:5]
+            occasions = list(result['user_response']['occasions'])[:3]
             what_works = result['user_response']['what_works']
             improvements = result['user_response']['improvement']
             user_response = result['user_response']
@@ -374,10 +373,11 @@ class FashionWorkflow:
 
 
             formatted_text = (
-                f"{str(summary)}\n\n"
                 f"What Works:\n{str(what_works)}\n\n"
-                f"How to make it better:\n{str(improvements)}\n\n"
-                f"Styling Hacks:\n"
+                f"How to make it better:\n{str(improvements)}\n"
+                + f"\nSuitable Occasions:\n"
+                + "\n".join([f"{i+1}. {tip.capitalize()}" for i, tip in enumerate(occasions)])
+                + f"\n\nStyling Hacks:\n"
                 + "\n".join([f"{i+1}. {tip.capitalize()}" for i, tip in enumerate(tips)])
             )
 
@@ -467,7 +467,7 @@ class FashionWorkflow:
                 state['follow_up_needed'] = True
                 state['follow_up_message'] = followup_questions
         
-        if state['service_mode'] == 'styling':
+        if state['service_mode'] == 'suitme':
             
             required_fields = ['body_type', 'skin_tone', 'height', 'style_preferences', 'size_preferences']
           
@@ -595,9 +595,10 @@ class FashionWorkflow:
         required_fields = ['body_type', 'skin_tone', 'height', 'style_preferences', 'size_preferences']
         print("check followup for styles")
         missing_fields = [field for field in required_fields if not user_info.get(field)]
-        print(user_info)
+        print("missing fields are", missing_fields)
+        print("required fields are", required_fields)
         if len(required_fields) - len(missing_fields) < 2:
-      
+            print("returning followup")
             return 'followup'
         state['image'] = None
         return 'complete'

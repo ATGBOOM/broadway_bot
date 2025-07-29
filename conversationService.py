@@ -11,7 +11,7 @@ class ConversationService:
             'Occasion',
             'Pairing',
             'Vacation',
-            'Stlying'
+            'SuitMe'
         ]
     
     def processTurn(self, user_input, gender, intent = "general"):
@@ -36,7 +36,7 @@ You are a smart, context-aware assistant helping interpret user requests for fas
 You are given:
 - The ongoing **conversation context** between the assistant and the user
 - The latest **user query**
-- The **user’s known gender** (if any)
+- The **user’s known gender** (if any) 
 - A list of **previous recommendations** already shown
 
 ---
@@ -57,7 +57,7 @@ Return a **concise natural-language sentences ** that clearly states what the us
 📝 **Your summary should**:
 - Be complete, readable, and contextually aware
 - Mention any **specific products, weather, location, occasions, pairing needs**, or references to prior items
-- Be immediately **actionable** by microservices (e.g., vacation outfit planner, product matcher, pairing assistant)
+- Be immediately **actionable** by microservices (e.g., vacation outfit and beauty product planner, product pairing assistant, occasion outfit finder, suit me service or general info service)
 - Include gender if provided for better reccomendations
 
 🛑 Do NOT:
@@ -136,65 +136,142 @@ Summarize and update the context to include only relevant information for the ne
 
     def understandIntent(self, context, previous_intent, user_input):
         print("conversation given to intent bot", self.conversation_context)
+#         prompt = f"""
+#         You are a highly advanced AI assistant specializing in Natural Language Understanding for e-commerce. Your primary function is to accurately determine a user's shopping intent by analyzing their latest message in the context of the conversation history.
+
+# Your core principle is: **The most recent user message holds the most weight.** The conversation history provides context but does not override a clear, new request.
+
+# ---
+# ### Step 1: Analyze the Inputs
+
+# 1.  **Current User Input:** This is the user's newest message. What is the explicit request here? Does it contain keywords related to events, travel, or specific products? If user input is vague then try to rely on the conversation context
+# 2.  **Conversation Context:** This is the history of the conversation. What was the previous topic? Use this to understand the background, but do not let it overpower the `Current User Input`. For example, if the user was planning a vacation but their *new message* is "I need shoes for a wedding," the intent is now "Occasion," not "Vacation."
+
+# ---
+# ### Step 2: Evaluate Against Defined Intents
+
+# Based on your analysis, choose **ONLY ONE** of the following intents.
+
+# **INTENT DEFINITIONS:**
+
+# * **"Vacation"**
+#     * **Description:** The user is planning, packing for, or shopping for a trip, vacation, or holiday. Their needs are contextualized by a destination's climate, culture, or planned activities.
+#     * **Trigger Keywords:** "trip to," "traveling to," "packing for," "vacation in," "holiday," "what to wear in [city/country]," "going to [destination]."
+#     * **Example:** User was looking for sunglasses. Current input is "I'll be going to Goa next month, what else should I pack?" -> **Vacation**.
+
+# * **"Occasion"**
+#     * **Description:** The user is looking for outfits or items suitable for a specific event, activity, or dress code. The primary filter for the search is the occasion itself.
+#     * **Trigger Keywords:** "wedding," "party," "interview," "work," "office," "gym," "date night," "formal," "black-tie," "brunch," "concert," "graduation."
+#     * **Example:** User was talking about a trip. Current input is "Thanks! Also, I need a dress for a friend's wedding." -> **Occasion**.
+
+# * **"Pairing"**
+#     * **Description:** The user has a specific item and is looking for product recommendations for other items to wear with it. The goal is product discovery. Do not call this if it is a general informational request about styling, fabrics, or weather.
+#     * **Trigger Keywords:** "what to wear with," "what goes with," "find a top for," "recommend a shoe for," "I need a bag to match my boots."
+#     * **Example:** User was shopping for an occasion. Current input is "I just bought these black jeans, what kind of tops would go well with them?" -> **Pairing**.
+
+# * **"Styling"**
+#     * **Description:** The user is seeking personalized feedback, validation, or styling analysis for themselves in context of a specific product or sets of products that are given. Do not call this if specific products are not given.
+
+#     * **Example:** User is viewing a dress. Current input is "I have a pear-shaped body, will this look good on me?" -> **Styling**.
+    
+# * **"General"**
+#     * **Description:** This is for purely informational or ambiguous queries. It covers broad questions about styles, trends, or general styling techniques that are not personalized. The expected output is information, not a product recommendation or personal validation.
+#     * **Trigger Keywords:** "how do you," "what is," "style guide," "fashion trends," "show me some shirts," "looking for shoes," "any new arrivals?," "I'm bored, show me something cool."
+#     * **Example:** The conversation is new. Current input is "I want to buy clothes." -> **General**.
+
+# ---
+# ### Step 3: Format the Output
+
+# Provide your response in a strict JSON format. Do not add any text outside of the JSON structure.
+
+# **INPUTS FOR YOUR ANALYSIS:**
+# - **Current User Input:** {user_input}
+# - **Conversation Context:** {context}
+
+
+# **JSON OUTPUT FORMAT:**
+# ```json
+# {{
+#   "reasoning": "A brief, one-sentence explanation of your decision-making process, explicitly mentioning how the current user input drove the choice.",
+#   "intent": "The single, most accurate intent from the list."
+# }} """
         prompt = f"""
+
         You are a highly advanced AI assistant specializing in Natural Language Understanding for e-commerce. Your primary function is to accurately determine a user's shopping intent by analyzing their latest message in the context of the conversation history.
 
-Your core principle is: **The most recent user message holds the most weight.** The conversation history provides context but does not override a clear, new request.
+Your core principles are:
 
----
-### Step 1: Analyze the Inputs
+The most recent user message holds the most weight. Context is for clarification, not overriding a new, clear request.
 
-1.  **Current User Input:** This is the user's newest message. What is the explicit request here? Does it contain keywords related to events, travel, or specific products? If user input is vague then try to rely on the conversation context
-2.  **Conversation Context:** This is the history of the conversation. What was the previous topic? Use this to understand the background, but do not let it overpower the `Current User Input`. For example, if the user was planning a vacation but their *new message* is "I need shoes for a wedding," the intent is now "Occasion," not "Vacation."
+Evaluate intents using the specified hierarchy. Assess the input against the intents in the order they are listed, from most specific to most general. The first one that accurately fits is the correct one.
 
----
-### Step 2: Evaluate Against Defined Intents
+Step 1: Analyze the Inputs
+Current User Input: Analyze the user's newest message for its explicit request, keywords, and entities.
 
-Based on your analysis, choose **ONLY ONE** of the following intents.
+Conversation Context: Use the conversation history to resolve ambiguities in the current input. If the current input is a clear, standalone request, prioritize it.
 
-**INTENT DEFINITIONS:**
+Step 2: Evaluate Against Defined Intents (Using a Strict Hierarchy)
+Evaluate the user's need against the following intents in this specific order. Choose the first intent that provides a complete and accurate description of the user's primary goal.
 
-* **"Vacation"**
-    * **Description:** The user is planning, packing for, or shopping for a trip, vacation, or holiday. Their needs are contextualized by a destination's climate, culture, or planned activities.
-    * **Trigger Keywords:** "trip to," "traveling to," "packing for," "vacation in," "holiday," "what to wear in [city/country]," "going to [destination]."
-    * **Example:** User was looking for sunglasses. Current input is "I'll be going to Goa next month, what else should I pack?" -> **Vacation**.
+INTENT HIERARCHY & DEFINITIONS:
 
-* **"Occasion"**
-    * **Description:** The user is looking for outfits or items suitable for a specific event, activity, or dress code. The primary filter for the search is the occasion itself.
-    * **Trigger Keywords:** "wedding," "party," "interview," "work," "office," "gym," "date night," "formal," "black-tie," "brunch," "concert," "graduation."
-    * **Example:** User was talking about a trip. Current input is "Thanks! Also, I need a dress for a friend's wedding." -> **Occasion**.
+1. SuitMe
 
-* **"Pairing"**
-    * **Description:** The user has a specific item and is looking for product recommendations for other items to wear with it. The goal is product discovery. Do not call this if it is a general informational request about styling, fabrics, or weather.
-    * **Trigger Keywords:** "what to wear with," "what goes with," "find a top for," "recommend a shoe for," "I need a bag to match my boots."
-    * **Example:** User was shopping for an occasion. Current input is "I just bought these black jeans, what kind of tops would go well with them?" -> **Pairing**.
+Description: The user is seeking for an assessment of a specific outfit, which they are providing. 
 
-* **"Styling"**
-    * **Description:** The user is seeking personalized feedback, validation, or styling analysis for themselves. They want to know if an item, outfit, or style will look good *on them*. The query is subjective and centered on the user's personal attributes (body type, height, skin tone, etc.). The focus is on analysis and advice, not product discovery.
-    * **Trigger Keywords:** "suit me," "look good on me," "flattering for my [body type]," "work for me," "should I wear this," "how would this look on me," "is this appropriate for," "does this complement my skin tone," "how should *I* style this."
-    * **Example:** User is viewing a dress. Current input is "I have a pear-shaped body, will this look good on me?" -> **Styling**.
-    
-* **"General"**
-    * **Description:** This is for purely informational or ambiguous queries. It covers broad questions about styles, trends, or general styling techniques that are not personalized. The expected output is information, not a product recommendation or personal validation.
-    * **Trigger Keywords:** "how do you," "what is," "style guide," "fashion trends," "show me some shirts," "looking for shoes," "any new arrivals?," "I'm bored, show me something cool."
-    * **Example:** The conversation is new. Current input is "I want to buy clothes." -> **General**.
+Example: User is viewing a dress. Input: "I have a pear-shaped body, will this look good on me?" -> SuitMe.
 
----
-### Step 3: Format the Output
+Distinction: This is for personalized feedback. A general question like "What styles are best for a pear shape?" is General.
 
+2. Pairing
+
+Description: The user has a specific "anchor" item (that they own, are considering, or just mentioned) and is looking for recommendations for other products to wear or use with it. The goal is product discovery to complete a specific look.
+
+Example: "I just bought these black jeans, what kind of tops would go well with them?" -> Pairing.
+
+Distinction: This requires an anchor item. A general styling question like "How do you style black jeans?" is General. A broad request like "show me tops" is also General.
+
+3. Occasion
+
+Description: The user is shopping for a specific event, activity, or social setting with an implicit or explicit dress code. The occasion is the primary filter for the search.
+
+Example: "I need something to wear for a job interview next week." -> Occasion.
+
+Distinction: The event is the main driver. If a user asks about an outfit for a "wedding in Bali," the Occasion (wedding) is more specific than the Vacation (Bali) and should be chosen.
+
+4. Vacation
+
+Description: The user is planning, packing for, or shopping for a trip. The needs are contextualized by a destination's climate, culture, or planned activities. This intent is used when the trip itself is the primary context.
+
+Example: "I'll be going to Goa next month, what else should I pack?" -> Vacation.
+
+Distinction: This is for trip-level planning. If a specific event is mentioned within the trip (e.g., "a formal dinner on my cruise"), Occasion takes precedence.
+
+5. General (Least Specific - Catch-all)
+
+Description: This is the default intent used ONLY if the query does not fit any of the more specific categories above. It covers two main scenarios: (A) Broad Product Browse where the user wants to see a category of items without specific constraints, and (B) Informational Questions about fashion, trends, or style principles that are not personalized.
+
+Example (A - Browse): "Show me some red dresses." -> General.
+
+Example (B - Informational): "What is the difference between linen and cotton?" -> General.
+
+Step 3: Format the Output
 Provide your response in a strict JSON format. Do not add any text outside of the JSON structure.
 
-**INPUTS FOR YOUR ANALYSIS:**
-- **Current User Input:** {user_input}
-- **Conversation Context:** {context}
+INPUTS FOR YOUR ANALYSIS:
 
+Current User Input: {user_input}
 
-**JSON OUTPUT FORMAT:**
-```json
+Conversation Context: {context}
+
+JSON OUTPUT FORMAT:
+
 {{
-  "reasoning": "A brief, one-sentence explanation of your decision-making process, explicitly mentioning how the current user input drove the choice.",
+  "reasoning": "A brief, one-sentence explanation of your decision-making process, referencing the intent hierarchy and why the chosen intent is the most specific, accurate fit.",
   "intent": "The single, most accurate intent from the list."
-}} """
+}}
+
+"""
 
         response = self._call_ai(prompt).strip()
             
@@ -205,6 +282,7 @@ Provide your response in a strict JSON format. Do not add any text outside of th
         if start_idx != -1 and end_idx != 0:
             json_content = json.loads(response[start_idx:end_idx])
             print("reasoning for intent is", json_content['reasoning'])
+            print("intent is", json_content['intent'])
             return json_content['intent']
         return 'General'
 

@@ -13,17 +13,20 @@ class GeneralService:
             prods = self.reccomendation.get_general_reccomendations(user_query, context)
             print ("there are the prods")
             if not prods:
-                dialogue = self.noRecs(dialogue)
+                dialogue = self.noRecs(user_query, dialogue)
                
             return dialogue, prods
         return dialogue, None
 
 
-    def noRecs(self, dialogue):
+    def noRecs(self, user_input, dialogue):
         prompt = f"""
 
-            Remove followup questions and add an apology for not having reccomendations in the text below
-            {dialogue}
+            You are an intelligent, humorous, and insightful shopping assistant for the brand **Broadway**, which offers a wide range of fashion, beauty, and personal care products.
+            Apologize for not having the reccomendation needed by the user and suggest alternatives they may find useful. Below is the dialogue you would've said if you had the products, change this to reflect that you don't have the products. Return ONLY the response
+            
+            USER INPUT: {user_input}
+            DIALOGUE : {dialogue}
 
     """
         return self._call_ai(prompt)
@@ -51,10 +54,11 @@ Your goal is to:
 
 3. If the query is **product-based** or cannot be accurately resolved with just the given context, ask **smart follow-up questions** that nudge the user to provide more details and help activate one of our 3 core microservices. But do not ask follow-ups if the query already clearly indicates the use-case.
 
-The 3 core microservices are:
+The core microservices are:
 - **Occasion** (e.g. dressing for a wedding, dinner, office, etc.)
 - **Pairing** (e.g. what to wear with jeans, a red top, white sneakers)
 - **Vacation** (e.g. packing suggestions for a location or climate)
+- **Looks Good On Me**  (e.g. will this outfit look good on me)
 
 STRICT RULES:
 1) YOU ARE NOT TO SPEAK ABOUT BRANDS NOT IN THE BROADWAY CATALOGUE
